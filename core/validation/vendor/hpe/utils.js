@@ -23,6 +23,47 @@ const normalizeDescription = (value) => {
   return collapseWhitespace(trimmed).toLowerCase();
 };
 
+const normalizeHpePartNumber = (raw) => {
+  const trimmed = normalizeText(raw);
+  if (!trimmed) {
+    return { normalized: "", tokens: [], notes: [] };
+  }
+
+  const collapsed = collapseWhitespace(trimmed);
+  const tokens = collapsed.split(" ").filter(Boolean);
+  const candidate = tokens[0] || "";
+  const trailingTokens = tokens.slice(1);
+  const notes = [];
+
+  const hasTrailingTokens = trailingTokens.length > 0;
+  const trailingTokensAreShort = trailingTokens.every((token) =>
+    /^[A-Za-z0-9]{2,4}$/.test(token),
+  );
+
+  let normalizedCandidate = collapsed;
+  if (hasTrailingTokens && trailingTokensAreShort) {
+    normalizedCandidate = candidate;
+    notes.push("removed_trailing_tokens");
+  }
+
+  return {
+    normalized: normalizeText(normalizedCandidate).toUpperCase(),
+    tokens: trailingTokens,
+    notes,
+  };
+};
+
+const isValidHpePnCandidate = (pn) => {
+  const normalized = normalizeText(pn).toUpperCase();
+  if (!normalized) {
+    return false;
+  }
+  if (normalized.length < 5 || normalized.length > 20) {
+    return false;
+  }
+  return /^[A-Z0-9-]+$/.test(normalized);
+};
+
 const extractTextSources = (item) => {
   const description =
     item?.parsed?.description || item?.description || item?.parsed?.desc || "";
@@ -73,7 +114,9 @@ export {
   getItemRef,
   getPartNumberValue,
   getQtyValue,
+  isValidHpePnCandidate,
   normalizeDescription,
+  normalizeHpePartNumber,
   normalizePartNumber,
   normalizeText,
 };
