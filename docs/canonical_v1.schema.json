@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/jarvis-core/canonical_v1.schema.json",
+  "title": "Canonical Line v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["raw", "coords"],
+  "properties": {
+    "raw": {
+      "type": "string"
+    },
+    "coords": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page", "x", "y", "w", "h"],
+      "properties": {
+        "page": { "type": "integer", "minimum": 1 },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number" },
+        "h": { "type": "number" }
+      }
+    },
+    "parsed": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": "string" },
+        "value": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "null" }
+          ]
+        }
+      }
+    }
+  }
+}
