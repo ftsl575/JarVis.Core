@@ -19,3 +19,7 @@ npm install
 npm run handoff
 npm run canon:hpe
 ```
+
+## Troubleshooting
+- If `npm install` fails, confirm dependency versions are published and the npm registry is reachable from your network.
+- Development Node.js version: v22.21.1.
