@@ -1,6 +1,18 @@
-import { extractTextSources, getItemRef, getPartNumberValue, getQtyValue, normalizeText } from "../utils.js";
+import {
+  getItemRef,
+  getLineSignals,
+  getPartNumberValue,
+  getQtyValue,
+  isValidHpePnCandidate,
+  normalizeHpePartNumber,
+  normalizeText,
+} from "../utils.js";
 
 const RULE_CODE = "HPE.RULE.001";
+const COMPONENT_NOUNS =
+  /\b(disk|drive|hdd|ssd|nvme|cpu|processor|memory|ram|dimm|nic|network|ethernet|psu|power\s*supply|fan|heatsink|controller|raid|adapter|card|module|gpu|backplane|cable)\b/;
+const GENERIC_WORDS = /\b(option|item|component|misc)\b/;
+const CONFIDENCE_THRESHOLD = 40;
 
 const ruleLineTypeSanity = (item) => {
   try {
@@ -11,25 +23,18 @@ const ruleLineTypeSanity = (item) => {
       return [];
     }
 
-    const { description, rawText } = extractTextSources(item);
-    const combined = `${description} ${rawText}`.trim();
+    const {
+      combined,
+      normalizedCombined,
+      hasFactoryIntegrated,
+      isService,
+      hasNonItemMarker,
+      hasWarrantyOnly,
+    } = getLineSignals(item);
 
     if (!combined) {
       return [];
     }
-
-    const normalizedCombined = combined.toLowerCase();
-    const hasOption = /\boption\b|\bopt(?:ion)?\s*kit\b|\bkit\b/i.test(normalizedCombined);
-    const hasSpare = /\bspare\b|\bspare\s*kit\b/i.test(normalizedCombined);
-    const hasFactoryIntegrated =
-      /\bfactory\s*integrated\b|\bconfigure[-\s]*to[-\s]*order\b|\bcto\b|\bfio\b|\bfi\b/i.test(
-        normalizedCombined,
-      );
-    const isService = /\bservice\b|\bsupport\b|\bmaintenance\b/i.test(normalizedCombined);
-    const hasNonItemMarker =
-      /\btotal\b|\bsubtotal\b|\btax\b|\bshipping\b|\bnotes?\b|\bheader\b|\bwarranty summary\b/i.test(
-        normalizedCombined,
-      );
 
     const partNumber = getPartNumberValue(item);
     const qtyValue = getQtyValue(item);
@@ -37,7 +42,7 @@ const ruleLineTypeSanity = (item) => {
     const hasQty = Number.isFinite(qtyNumber) && qtyNumber >= 1;
     const hasProductNumber = Boolean(normalizeText(partNumber));
 
-    if (hasNonItemMarker || isService) {
+    if (hasNonItemMarker || isService || hasWarrantyOnly) {
       return [];
     }
 
@@ -45,15 +50,41 @@ const ruleLineTypeSanity = (item) => {
       return [];
     }
 
-    if (!hasOption && !hasSpare && !hasFactoryIntegrated) {
+    if (hasFactoryIntegrated) {
+      return [];
+    }
+
+    let confidence = 0;
+    const { normalized } = normalizeHpePartNumber(partNumber);
+    if (normalized && isValidHpePnCandidate(normalized)) {
+      confidence += 40;
+    }
+
+    const isSmallInteger =
+      Number.isInteger(qtyNumber) && qtyNumber >= 1 && qtyNumber <= 10;
+    if (isSmallInteger) {
+      confidence += 20;
+    }
+
+    if (COMPONENT_NOUNS.test(normalizedCombined)) {
+      confidence += 20;
+    }
+
+    if (GENERIC_WORDS.test(normalizedCombined)) {
+      confidence -= 40;
+    }
+
+    if (confidence < CONFIDENCE_THRESHOLD) {
       return [
         {
           code: RULE_CODE,
           severity: "warn",
-          message:
-            "HPE line item lacks option, spare, or factory-integrated markers; missing signals: option, spare, factory integrated.",
+          message: "HPE line item classification confidence is low for line type.",
           itemRef: getItemRef(item),
           fields: ["parsed.description", "raw.text"],
+          context: {
+            confidence,
+          },
         },
       ];
     }

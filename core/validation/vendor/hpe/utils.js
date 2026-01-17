@@ -75,6 +75,38 @@ const extractTextSources = (item) => {
   };
 };
 
+const getLineSignals = (item) => {
+  const { description, rawText } = extractTextSources(item);
+  const combined = `${description} ${rawText}`.trim();
+  const normalizedCombined = normalizeDescription(combined);
+
+  const hasOption = /\boption\b|\bopt(?:ion)?\s*kit\b|\bkit\b/.test(normalizedCombined);
+  const hasSpare = /\bspare\b|\bspare\s*kit\b/.test(normalizedCombined);
+  const hasFactoryIntegrated =
+    /\bfactory\s*integrated\b|\bconfigure[-\s]*to[-\s]*order\b|\bcto\b|\bfio\b|\bfi\b/.test(
+      normalizedCombined,
+    );
+  const isService = /\bservice\b|\bsupport\b|\bmaintenance\b/.test(normalizedCombined);
+  const hasNonItemMarker =
+    /\btotal\b|\bsubtotal\b|\btax\b|\bshipping\b|\bnotes?\b|\bheader\b|\bwarranty summary\b/.test(
+      normalizedCombined,
+    );
+  const hasWarrantyOnly = /\bwarranty\b|\bcare\s*pack\b|\bcarepack\b/.test(normalizedCombined);
+
+  return {
+    description,
+    rawText,
+    combined,
+    normalizedCombined,
+    hasOption,
+    hasSpare,
+    hasFactoryIntegrated,
+    isService,
+    hasNonItemMarker,
+    hasWarrantyOnly,
+  };
+};
+
 const getQtyValue = (item) => {
   if (Object.prototype.hasOwnProperty.call(item ?? {}, "qty")) {
     return item.qty;
@@ -112,6 +144,7 @@ export {
   extractTextSources,
   getDescriptionValue,
   getItemRef,
+  getLineSignals,
   getPartNumberValue,
   getQtyValue,
   isValidHpePnCandidate,

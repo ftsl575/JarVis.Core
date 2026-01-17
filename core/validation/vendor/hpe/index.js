@@ -7,10 +7,13 @@ import {
 import {
   getDescriptionValue,
   getItemRef,
+  getLineSignals,
   getPartNumberValue,
+  getQtyValue,
   normalizeDescription,
   normalizePartNumber,
 } from "./utils.js";
+import { runVendorValidation } from "../validator.js";
 
 const RULES = [
   ruleLineTypeSanity,
@@ -19,24 +22,7 @@ const RULES = [
   rulePartNumberFormat,
 ];
 
-const createEmptyResult = () => ({
-  vendor: "HPE",
-  counts: { error: 0, warn: 0, info: 0 },
-  findingsSample: [],
-  codes: {},
-});
-
-const recordFinding = (result, finding) => {
-  const severity = finding.severity || "info";
-  result.counts[severity] = (result.counts[severity] || 0) + 1;
-
-  if (!result.codes[finding.code]) {
-    result.codes[finding.code] = { severity, count: 0 };
-  }
-  result.codes[finding.code].count += 1;
-};
-
-const collectDuplicatePartNumberFindings = (items) => {
+const buildPartNumberEntries = (items) => {
   const byPartNumber = new Map();
 
   for (const item of items) {
@@ -45,6 +31,21 @@ const collectDuplicatePartNumberFindings = (items) => {
       continue;
     }
     const description = normalizeDescription(getDescriptionValue(item));
+    const qtyValue = getQtyValue(item);
+    const qtyNumber = Number(qtyValue);
+    const qty = Number.isFinite(qtyNumber) ? qtyNumber : null;
+    const lineSignals = getLineSignals(item);
+    const lineTypes = new Set();
+    if (lineSignals.hasOption) {
+      lineTypes.add("option");
+    }
+    if (lineSignals.hasSpare) {
+      lineTypes.add("spare");
+    }
+    if (lineSignals.hasFactoryIntegrated) {
+      lineTypes.add("factory");
+    }
+
     if (!byPartNumber.has(partNumber)) {
       byPartNumber.set(partNumber, []);
     }
@@ -52,9 +53,15 @@ const collectDuplicatePartNumberFindings = (items) => {
       description,
       rawDescription: getDescriptionValue(item),
       itemRef: getItemRef(item),
+      qty,
+      lineTypes,
     });
   }
 
+  return byPartNumber;
+};
+
+const collectDuplicatePartNumberFindings = (byPartNumber) => {
   const findings = [];
   for (const [partNumber, entries] of byPartNumber.entries()) {
     const uniqueDescriptions = new Map();
@@ -83,45 +90,96 @@ const collectDuplicatePartNumberFindings = (items) => {
   return findings;
 };
 
-const validateHpeItems = (items, options = {}) => {
-  const result = createEmptyResult();
-  const maxFindingsSample = options.maxFindingsSample ?? 50;
+const collectSamePartNumberDifferentQtyFindings = (byPartNumber) => {
+  const findings = [];
+  for (const [partNumber, entries] of byPartNumber.entries()) {
+    const qtyValues = new Set(entries.map((entry) => entry.qty).filter((qty) => qty !== null));
+    if (qtyValues.size > 1) {
+      findings.push({
+        code: "HPE.RULE.006",
+        severity: "info",
+        message: "Same part number appears with multiple quantity values.",
+        itemRef: entries[0]?.itemRef,
+        fields: ["parsed.product_number", "parsed.qty"],
+        context: {
+          partNumber,
+          quantities: Array.from(qtyValues),
+        },
+      });
+    }
+  }
 
+  return findings;
+};
+
+const collectSamePartNumberMixedLineTypeFindings = (byPartNumber) => {
+  const findings = [];
+  for (const [partNumber, entries] of byPartNumber.entries()) {
+    const lineTypeSignals = new Set();
+    for (const entry of entries) {
+      for (const lineType of entry.lineTypes) {
+        lineTypeSignals.add(lineType);
+      }
+    }
+
+    if (lineTypeSignals.has("option") && (lineTypeSignals.has("spare") || lineTypeSignals.has("factory"))) {
+      findings.push({
+        code: "HPE.RULE.007",
+        severity: "warn",
+        message: "Same part number appears as both option and spare/factory line types.",
+        itemRef: entries[0]?.itemRef,
+        fields: ["parsed.product_number", "parsed.description", "raw.text"],
+        context: {
+          partNumber,
+          lineTypes: Array.from(lineTypeSignals),
+        },
+      });
+    }
+  }
+
+  return findings;
+};
+
+const createHpeValidator = () => {
+  const context = {
+    partNumberEntries: new Map(),
+  };
+
+  return {
+    vendor: "HPE",
+    pre(items) {
+      context.partNumberEntries = buildPartNumberEntries(items);
+    },
+    validateItem(item) {
+      const findings = [];
+      for (const rule of RULES) {
+        const ruleFindings = rule(item) || [];
+        findings.push(...ruleFindings);
+      }
+      return findings;
+    },
+    post(items) {
+      const partNumberEntries =
+        context.partNumberEntries?.size ? context.partNumberEntries : buildPartNumberEntries(items);
+      return [
+        ...collectDuplicatePartNumberFindings(partNumberEntries),
+        ...collectSamePartNumberDifferentQtyFindings(partNumberEntries),
+        ...collectSamePartNumberMixedLineTypeFindings(partNumberEntries),
+      ];
+    },
+  };
+};
+
+const validateHpeItems = (items, options = {}) => {
   if (!Array.isArray(items) || items.length === 0) {
-    return result;
+    return runVendorValidation(createHpeValidator(), [], options);
   }
 
   const relevantItems = items.filter((item) =>
     item?.line_type ? item.line_type === "item" : true,
   );
 
-  const findings = [];
-  for (const item of relevantItems) {
-    for (const rule of RULES) {
-      const ruleFindings = rule(item) || [];
-      findings.push(...ruleFindings);
-    }
-  }
-
-  findings.push(...collectDuplicatePartNumberFindings(relevantItems));
-
-  for (const finding of findings) {
-    recordFinding(result, finding);
-    if (result.findingsSample.length < maxFindingsSample) {
-      result.findingsSample.push(finding);
-    }
-  }
-
-  const topIssues = Object.entries(result.codes)
-    .map(([code, detail]) => ({ code, severity: detail.severity, count: detail.count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  if (topIssues.length > 0) {
-    result.topIssues = topIssues;
-  }
-
-  return result;
+  return runVendorValidation(createHpeValidator(), relevantItems, options);
 };
 
 export { validateHpeItems };
