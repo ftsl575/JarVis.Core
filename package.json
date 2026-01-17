@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "handoff": "node scripts/handoff.js",
     "lint": "node scripts/lint.js",
     "test": "node scripts/test.js",
     "canon:hpe": "node adapters/hpe/index.js samples/hpe --out out"
