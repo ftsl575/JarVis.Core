@@ -12,9 +12,19 @@ JarVis.Core is a spec-processing backbone that normalizes incoming document adap
 ## Placeholder commands
 
 ```bash
+npm run handoff
 npm run lint
 npm run test
 npm run canon:hpe
 ```
 
 The `canon:hpe` command expects a folder of `.xlsx` files and writes placeholder output to `out/`.
+
+## Handoff / Switching Chat Windows
+
+Use the handoff docs to pick up work quickly in a new chat window:
+
+- [docs/HANDOFF.md](docs/HANDOFF.md)
+- [docs/STATUS.md](docs/STATUS.md)
+
+Run `npm run handoff` to print the current handoff notes.
