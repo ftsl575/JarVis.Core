@@ -82,3 +82,38 @@ test("generates invoice with expected line count", async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test("parses cleaned spec workbook data", async () => {
+  const tempDir = path.join(process.cwd(), "tests", ".tmp");
+  await fs.mkdir(tempDir, { recursive: true });
+
+  const tempPath = path.join(tempDir, `cleaned-spec-${Date.now()}.xlsx`);
+
+  try {
+    const rows = [
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      ["1", "P73282-B21", "HPE ProLiant ...", "Server", "Сервер", "1", "1"],
+      ["2", "P73282-B21  B19", "HPE DL380 ...", "Server", "Сервер", "1", "1"],
+      ["3", "P74573-B21", "Intel Xeon ...", "CPU", "Процессор", "2", "1"],
+    ];
+
+    const workbook = createWorkbook(rows, "Sheet1");
+    xlsx.writeFile(workbook, tempPath);
+
+    const parsed = readCleanedSpecXlsx(tempPath);
+
+    assert.ok(parsed.length >= 3);
+    assert.equal(parsed[0].partNumber, "P73282-B21");
+    assert.equal(parsed[0].qty, 1);
+  } finally {
+    await fs.rm(tempPath, { force: true });
+  }
+});
