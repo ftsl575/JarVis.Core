@@ -3,10 +3,10 @@
 ## Current state
 - Repo scaffold in place (adapters/, core/, docs/, scripts/, samples/).
 - Chat/window handoff system added: docs/STATUS.md, docs/HANDOFF.md, docs/DECISIONS.md, docs/ROADMAP.md, docs/CHAT_RULES.md plus `npm run handoff` (scripts/handoff.js).
-- Canonical parsing/validation logic is not implemented yet; scripts are placeholders.
+- HPE adapter now parses configurator XLSX files and exports Canonical v1 JSONL, item JSONL, and a summary report.
 
 ## What’s next (1 step)
-- Begin Canonical v1 validation using real vendor specs, starting with HPE (define required fields and validation rules from HPE docs, then update canon:hpe to enforce them).
+- Add Canonical v1 validation and enrichment logic inside core processing for HPE (required fields, vendor-specific rules, and downstream exports).
 
 ## Inputs needed from user
 - 3–10 sanitized sample HPE configurator `.xlsx` files.

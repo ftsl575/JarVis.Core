@@ -18,7 +18,11 @@ npm run test
 npm run canon:hpe
 ```
 
-The `canon:hpe` command expects a folder of `.xlsx` files and writes placeholder output to `out/`.
+The `canon:hpe` command expects a folder of `.xlsx` files and writes exports to `out/`:
+
+- `out/canonical.jsonl`
+- `out/items.jsonl`
+- `out/summary.json`
 
 ## Handoff / Switching Chat Windows
 

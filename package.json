@@ -5,7 +5,13 @@
   "scripts": {
     "handoff": "node scripts/handoff.js",
     "lint": "node scripts/lint.js",
-    "test": "node scripts/test.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "canon:hpe": "node adapters/hpe/index.js samples/hpe --out out"
+  },
+  "dependencies": {
+    "xlsx": "^0.19.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
