@@ -1,4 +1,4 @@
-import { promises as fs } from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 import xlsx from "xlsx";
 
@@ -215,7 +215,7 @@ const toLine = ({
 };
 
 const ensureOutDir = async (outputDir) => {
-  await fs.mkdir(outputDir, { recursive: true });
+  await fs.promises.mkdir(outputDir, { recursive: true });
 };
 
 const main = async () => {
@@ -231,7 +231,7 @@ const main = async () => {
 
   let entries;
   try {
-    entries = await fs.readdir(inputDir, { withFileTypes: true });
+    entries = fs.readdirSync(inputDir, { withFileTypes: true });
   } catch (error) {
     console.error(`Failed to read input directory: ${inputDir}`);
     console.error(error.message);
@@ -379,11 +379,15 @@ const main = async () => {
     finished_at: new Date().toISOString(),
   };
 
-  await Promise.all([
-    fs.writeFile(path.join(outputDir, "canonical.jsonl"), `${canonicalLines.join("\n")}\n`),
-    fs.writeFile(path.join(outputDir, "items.jsonl"), `${itemLines.join("\n")}\n`),
-    fs.writeFile(path.join(outputDir, "summary.json"), JSON.stringify(summary, null, 2)),
-  ]);
+  fs.writeFileSync(path.join(outputDir, "canonical.jsonl"), `${canonicalLines.join("\n")}\n`, {
+    encoding: "utf8",
+  });
+  fs.writeFileSync(path.join(outputDir, "items.jsonl"), `${itemLines.join("\n")}\n`, {
+    encoding: "utf8",
+  });
+  fs.writeFileSync(path.join(outputDir, "summary.json"), JSON.stringify(summary, null, 2), {
+    encoding: "utf8",
+  });
 };
 
 main();
