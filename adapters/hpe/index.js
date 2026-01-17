@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import xlsx from "xlsx";
+import { validateHpeItems } from "../../core/validation/vendor/index.js";
 
 const usage = () => {
   console.error("Usage: node adapters/hpe/index.js <inputDir> --out <outputDir>");
@@ -251,6 +252,7 @@ const main = async () => {
   }
 
   const canonicalLines = [];
+  const canonicalRecords = [];
   const itemLines = [];
   const warningCounts = {};
   let warningsTotal = 0;
@@ -342,6 +344,7 @@ const main = async () => {
 
       linesExported += 1;
       canonicalLines.push(JSON.stringify(line));
+      canonicalRecords.push(line);
 
       for (const warning of line.warnings) {
         recordWarning(warning.code);
@@ -378,6 +381,8 @@ const main = async () => {
     started_at: startedAt.toISOString(),
     finished_at: new Date().toISOString(),
   };
+  const hpeValidation = validateHpeItems(canonicalRecords);
+  summary.validation = { ...(summary.validation || {}), hpe: hpeValidation };
 
   fs.writeFileSync(path.join(outputDir, "canonical.jsonl"), `${canonicalLines.join("\n")}\n`, {
     encoding: "utf8",
