@@ -80,6 +80,8 @@ test("exports canonical, items, and summary", async () => {
     assert.ok(itemLines.length >= 1);
     assert.equal(summary.items_exported, 1);
     assert.equal(summary.warnings_by_code.MISSING_PARTNUMBER, 1);
+    assert.equal(summary.validation.errors_total, summary.lines_exported);
+    assert.equal(summary.validation.errors_by_code.SCHEMA_INVALID, summary.lines_exported);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import xlsx from "xlsx";
+import enrichCanonical from "../../core/canonical/enrich.js";
+import validateCanonical from "../../core/canonical/validate.js";
 
 const usage = () => {
   console.error("Usage: node adapters/hpe/index.js <inputDir> --out <outputDir>");
@@ -258,10 +260,38 @@ const main = async () => {
   let linesExported = 0;
   let itemsExported = 0;
   let sheetsProcessed = 0;
+  const validationSummary = {
+    errors_total: 0,
+    warnings_total: 0,
+    errors_by_code: {},
+    warnings_by_code: {},
+    errors_sample: [],
+  };
 
   const recordWarning = (code) => {
     warningCounts[code] = (warningCounts[code] || 0) + 1;
     warningsTotal += 1;
+  };
+
+  const recordValidationError = (line, errors) => {
+    validationSummary.errors_total += 1;
+    validationSummary.errors_by_code.SCHEMA_INVALID =
+      (validationSummary.errors_by_code.SCHEMA_INVALID || 0) + 1;
+
+    if (validationSummary.errors_sample.length < 10) {
+      validationSummary.errors_sample.push({
+        id: line.id,
+        errors: errors.slice(0, 3).map((error) => error.message),
+      });
+    }
+  };
+
+  const recordValidationWarnings = (warnings) => {
+    for (const warning of warnings) {
+      validationSummary.warnings_total += 1;
+      validationSummary.warnings_by_code[warning.code] =
+        (validationSummary.warnings_by_code[warning.code] || 0) + 1;
+    }
   };
 
   for (const file of files) {
@@ -340,26 +370,35 @@ const main = async () => {
         range,
       });
 
-      linesExported += 1;
-      canonicalLines.push(JSON.stringify(line));
+      const enrichedLine = enrichCanonical(line);
+      const validation = validateCanonical(enrichedLine);
+      if (!validation.ok) {
+        recordValidationError(enrichedLine, validation.errors);
+      }
+      if (validation.warnings.length > 0) {
+        recordValidationWarnings(validation.warnings);
+      }
 
-      for (const warning of line.warnings) {
+      linesExported += 1;
+      canonicalLines.push(JSON.stringify(enrichedLine));
+
+      for (const warning of enrichedLine.warnings) {
         recordWarning(warning.code);
       }
 
-      if (line.line_type === "item") {
+      if (enrichedLine.line_type === "item") {
         itemsExported += 1;
         itemLines.push(
           JSON.stringify({
-            id: line.id,
-            source: line.source,
-            qty: line.parsed.qty,
-            product_number: line.parsed.product_number,
-            description: line.parsed.description,
+            id: enrichedLine.id,
+            source: enrichedLine.source,
+            qty: enrichedLine.parsed.qty,
+            product_number: enrichedLine.parsed.product_number,
+            description: enrichedLine.parsed.description,
             raw_ref: {
-              file: line.source.file,
-              sheet: line.source.sheet,
-              row_index: line.source.row_index,
+              file: enrichedLine.source.file,
+              sheet: enrichedLine.source.sheet,
+              row_index: enrichedLine.source.row_index,
             },
           }),
         );
@@ -375,6 +414,7 @@ const main = async () => {
     items_exported: itemsExported,
     warnings_total: warningsTotal,
     warnings_by_code: warningCounts,
+    validation: validationSummary,
     started_at: startedAt.toISOString(),
     finished_at: new Date().toISOString(),
   };

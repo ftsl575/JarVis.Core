@@ -7,6 +7,7 @@
   - Canonical v1 JSONL
   - Items JSONL
   - Summary JSON
+- Canonical v1 schema validation runs during exports and reports results in `summary.validation`.
 - Unicode (Cyrillic) filenames are preserved end-to-end:
   - `source.file` contains the exact original filename
   - derived IDs include the original filename without garbling
@@ -16,11 +17,7 @@
   - `npm test` runs without extra dependencies
 
 ## What’s next (1 step)
-- Add Canonical v1 validation and enrichment logic in core processing:
-  - schema validation against `canonical_v1.schema.json`
-  - required-field checks
-  - vendor-specific (HPE) normalization rules
-  - clear error/warning codes for downstream consumers
+- Add required-field validation rules plus HPE-specific normalization, and decide whether schema failures should warn-only or fail-fast.
 
 ## Inputs needed from user
 - 3–10 sanitized sample HPE configurator `.xlsx` files.
