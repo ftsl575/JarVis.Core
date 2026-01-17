@@ -21,12 +21,20 @@ const makeItem = (overrides = {}) => ({
   ...overrides,
 });
 
-test("HPE.RULE.001 flags missing line type signals", () => {
+test("HPE.RULE.001 flags low-confidence line types", () => {
   const findings = ruleLineTypeSanity(
-    makeItem({ parsed: { qty: 1, product_number: "ABC123", description: "Server" } }),
+    makeItem({ parsed: { qty: 1, product_number: "XX", description: "Misc item" } }),
   );
   assert.equal(findings.length, 1);
   assert.equal(findings[0].code, "HPE.RULE.001");
+  assert.equal(findings[0].context.confidence < 40, true);
+});
+
+test("HPE.RULE.001 skips high-confidence line types", () => {
+  const findings = ruleLineTypeSanity(
+    makeItem({ parsed: { qty: 1, product_number: "ABC123", description: "SSD drive" } }),
+  );
+  assert.equal(findings.length, 0);
 });
 
 test("HPE.RULE.002 flags option and spare overlap", () => {
@@ -86,6 +94,32 @@ test("HPE.RULE.005 flags conflicting descriptions", () => {
   ];
   const result = validateHpeItems(items);
   assert.equal(result.codes["HPE.RULE.005"].count, 1);
+});
+
+test("HPE.RULE.006 flags same part number with different quantities", () => {
+  const items = [
+    makeItem({ parsed: { product_number: "PN-006", description: "SSD drive", qty: 1 } }),
+    makeItem({
+      id: "file.xlsx::BOM::3",
+      parsed: { product_number: "PN-006", description: "SSD drive", qty: 2 },
+    }),
+  ];
+  const result = validateHpeItems(items);
+  assert.equal(result.codes["HPE.RULE.006"].count, 1);
+});
+
+test("HPE.RULE.007 flags same part number with mixed line types", () => {
+  const items = [
+    makeItem({
+      parsed: { product_number: "PN-007", description: "Option kit", qty: 1 },
+    }),
+    makeItem({
+      id: "file.xlsx::BOM::4",
+      parsed: { product_number: "PN-007", description: "Spare kit", qty: 1 },
+    }),
+  ];
+  const result = validateHpeItems(items);
+  assert.equal(result.codes["HPE.RULE.007"].count, 1);
 });
 
 test("HPE.RULE.001 skips header-like lines", () => {
