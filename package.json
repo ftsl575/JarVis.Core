@@ -9,7 +9,7 @@
     "canon:hpe": "node adapters/hpe/index.js samples/hpe --out out"
   },
   "dependencies": {
-    "xlsx": "^0.19.3"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "jest": "^29.7.0"
