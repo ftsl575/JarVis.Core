@@ -1,4 +1,10 @@
-import { getItemRef, getPartNumberValue, normalizeText } from "../utils.js";
+import {
+  getItemRef,
+  getPartNumberValue,
+  isValidHpePnCandidate,
+  normalizeHpePartNumber,
+  normalizeText,
+} from "../utils.js";
 
 const RULE_CODE = "HPE.RULE.004";
 
@@ -16,26 +22,39 @@ const rulePartNumberFormat = (item) => {
     }
 
     const findings = [];
-    if (/\s/.test(trimmed)) {
+    const hasWhitespace = /\s/.test(trimmed);
+    const { normalized, tokens } = normalizeHpePartNumber(trimmed);
+    const normalizedIsValid = isValidHpePnCandidate(normalized);
+
+    if (hasWhitespace && normalizedIsValid) {
       findings.push({
         code: RULE_CODE,
-        severity: "warn",
-        message: "Part number contains whitespace characters.",
+        severity: "info",
+        message: "Part number normalized; trailing tokens ignored.",
         itemRef: getItemRef(item),
         fields: ["parsed.product_number"],
-        context: { partNumber: trimmed },
+        context: { raw: trimmed, normalized, tokens },
       });
+      return findings;
     }
 
-    const hasHpeSuffix = /-(B21|S21|001|291)\b/i.test(trimmed);
-    if (hasHpeSuffix && /[^A-Z0-9-]/i.test(trimmed)) {
+    if (!normalizedIsValid) {
+      const reasons = [];
+      if (/[^A-Z0-9-]/i.test(normalized)) {
+        reasons.push("illegal characters");
+      }
+      if (normalized.length < 5 || normalized.length > 20) {
+        reasons.push("unexpected length");
+      }
       findings.push({
         code: RULE_CODE,
         severity: "warn",
-        message: "Part number contains illegal characters for HPE option/spare patterns.",
+        message: `Part number failed HPE candidate validation${
+          reasons.length > 0 ? ` (${reasons.join(", ")})` : ""
+        }.`,
         itemRef: getItemRef(item),
         fields: ["parsed.product_number"],
-        context: { partNumber: trimmed },
+        context: { raw: trimmed, normalized, tokens },
       });
     }
 

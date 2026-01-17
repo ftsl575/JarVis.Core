@@ -38,8 +38,16 @@ schema.
 | `HPE.RULE.001` | warn | Line type sanity: HPE line items missing option/spare/factory-integrated markers and not identified as service. |
 | `HPE.RULE.002` | warn | Option kit vs spare mismatch: both signals appear in the same line item. |
 | `HPE.RULE.003` | warn/error | Quantity validation: missing quantity (warn) or invalid numeric value (error). |
-| `HPE.RULE.004` | warn | Part number format anomalies (whitespace or illegal characters with common HPE suffixes). |
+| `HPE.RULE.004` | warn/info | Part number format anomalies (warn) or normalized tokenized part numbers (info). |
 | `HPE.RULE.005` | info | Duplicate part numbers with conflicting descriptions. |
+
+## HPE part-number normalization
+
+HPE part numbers are normalized before evaluating format issues. The normalization trims and
+collapses whitespace, removes short trailing tokens (2–4 alphanumeric characters) like
+`0D1` or `B19`, preserves hyphens, and uppercases the result. If the normalized candidate
+is valid, `HPE.RULE.004` emits an `info` finding indicating that trailing tokens were
+ignored; otherwise, `HPE.RULE.004` remains a `warn` for suspicious values.
 
 ## Extending
 
