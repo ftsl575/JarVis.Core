@@ -7,8 +7,22 @@ import { generateInvoiceXlsx } from "../core/docs/hpe/invoice.js";
 import { readCleanedSpecXlsx } from "../core/docs/hpe/read-cleaned-spec.js";
 import { loadDeviceTypeDictionary } from "../core/docs/hpe/device-type-dict.js";
 
+const DEFAULT_TEMPLATE_PATH = "assets/templates/Шаблон инвойса.xlsx";
+const TEMPLATE_ENV_VAR = "JARVIS_TEMPLATE_INVOICE";
+
 const usage = () => {
-  console.error("Usage: node scripts/docs-hpe-invoice.js --spec <cleaned.xlsx> --template <template.xlsx> --out <out.xlsx>");
+  console.log(
+    [
+      "Usage: node scripts/docs-hpe-invoice.js --spec <cleaned.xlsx> --out <out.xlsx> [--template <template.xlsx>]",
+      "",
+      `Default template: ${DEFAULT_TEMPLATE_PATH}`,
+      `Template override order: --template > ${TEMPLATE_ENV_VAR} > default path`,
+      "",
+      "Examples:",
+      "  node scripts/docs-hpe-invoice.js --template \"C:\\\\path\\\\Шаблон инвойса.xlsx\"",
+      `  ${TEMPLATE_ENV_VAR}=./templates/invoice.xlsx node scripts/docs-hpe-invoice.js`,
+    ].join("\n")
+  );
 };
 
 const parseArgs = (argv) => {
@@ -17,6 +31,9 @@ const parseArgs = (argv) => {
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
+    if (arg === "--help") {
+      return { help: true };
+    }
     if (arg === "--spec" || arg === "--template" || arg === "--out" || arg === "--device-dict") {
       const next = args[i + 1];
       if (!next) {
@@ -66,25 +83,19 @@ const createDefaultCleanedSpec = async () => {
   return cleanedSpecPath;
 };
 
-const createDefaultInvoiceTemplate = async () => {
-  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-template-"));
-  const templatePath = path.join(tempDir, "template.xlsx");
-  const rows = [["", "#", "Part Number", "Description", "Device Type", "Qty components"]];
-  const workbook = xlsx.utils.book_new();
-  const sheet = xlsx.utils.aoa_to_sheet(rows);
-  xlsx.utils.book_append_sheet(workbook, sheet, "Invoice");
-  xlsx.writeFile(workbook, templatePath);
-  return templatePath;
-};
-
 const isValidationError = (error) =>
   error instanceof Error &&
   (error.message.startsWith("Cleaned spec is missing required columns:") ||
     error.message === "Invoice template has no worksheets." ||
-    error.message === "Invoice template worksheet is empty.");
+    error.message === "Invoice template worksheet is empty." ||
+    error.message.startsWith("invoice template does not match expected format"));
 
 const main = async () => {
   const parsed = parseArgs(process.argv);
+  if (parsed.help) {
+    usage();
+    process.exit(0);
+  }
   if (parsed.error) {
     console.error(parsed.error);
     usage();
@@ -92,9 +103,12 @@ const main = async () => {
   }
 
   let specPath = parsed.specPath || resolveDefaultPath("samples/hpe_docs/отладочный шаблон 1_cleaned.xlsx");
-  let templatePath = parsed.templatePath || resolveDefaultPath("assets/templates/Шаблон инвойса.xlsx");
+  const templateOverride = parsed.templatePath || process.env[TEMPLATE_ENV_VAR];
+  let templatePath = templateOverride ? path.resolve(templateOverride) : resolveDefaultPath(DEFAULT_TEMPLATE_PATH);
   const outPath = parsed.outPath || resolveDefaultPath("out/hpe_invoice.xlsx");
   const deviceDictPath = parsed.deviceDictPath || resolveDefaultPath("assets/templates/device_type_dictionary_template.xlsx");
+
+  console.log(`Using invoice template: ${templatePath}`);
 
   if (!fs.existsSync(specPath)) {
     if (parsed.specPath) {
@@ -105,14 +119,8 @@ const main = async () => {
     }
   }
   if (!fs.existsSync(templatePath)) {
-    if (parsed.templatePath) {
-      console.error(`Invoice template not found: ${templatePath}`);
-      process.exit(1);
-    } else {
-      const generatedTemplate = await createDefaultInvoiceTemplate();
-      console.warn(`Invoice template not found at ${templatePath}. Using generated template.`);
-      templatePath = generatedTemplate;
-    }
+    console.error(`Invoice template not found: ${templatePath}`);
+    process.exit(1);
   }
 
   let deviceTypeDictionary;
@@ -127,7 +135,10 @@ const main = async () => {
   }
 
   await ensureDir(outPath);
-  await generateInvoiceXlsx({ templatePath, items, outPath });
+  const result = await generateInvoiceXlsx({ templatePath, items, outPath });
+  if (result?.missingAnchors?.length) {
+    console.warn(`Invoice template is missing recommended anchors: ${result.missingAnchors.join(", ")}`);
+  }
 
   console.log(`Invoice generated: ${outPath}`);
 };

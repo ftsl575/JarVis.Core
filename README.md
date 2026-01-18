@@ -58,7 +58,11 @@ Output:
 Troubleshooting:
 
 - If the file is not generated, run `npm test` first and confirm the cleaned spec headers match exactly.
-- The binary `.xlsx` templates are not committed; invoice generation works without committing them.
+- The invoice template is local-only and is not committed to git (binary `.xlsx` files are intentionally excluded).
+- Place the template at `assets/templates/Шаблон инвойса.xlsx` for the default run.
+- Override the template path (flag > env > default):
+  - `node scripts/docs-hpe-invoice.js --template "C:\path\Шаблон инвойса.xlsx"`
+  - `setx JARVIS_TEMPLATE_INVOICE "C:\path\Шаблон инвойса.xlsx"`
 
 ## HPE cleaned spec batch generation
 

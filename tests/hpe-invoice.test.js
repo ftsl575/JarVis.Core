@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import xlsx from "xlsx";
 import { readCleanedSpecXlsx } from "../core/docs/hpe/read-cleaned-spec.js";
-import { generateInvoiceXlsx } from "../core/docs/hpe/invoice.js";
+import { generateInvoiceXlsx, validateInvoiceTemplate } from "../core/docs/hpe/invoice.js";
 
 const createWorkbook = (rows, sheetName = "Sheet1") => {
   const workbook = xlsx.utils.book_new();
@@ -40,29 +40,6 @@ const findHeaderRow = (sheet) => {
       return { rowIndex: r + 1, descriptionCol };
     }
   }
-  return null;
-};
-
-const findHeaderRowByLabels = (sheet, labels) => {
-  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
-  if (!range) {
-    return null;
-  }
-
-  for (let r = range.s.r; r <= range.e.r; r += 1) {
-    let matches = true;
-    for (let c = 0; c < labels.length; c += 1) {
-      const cell = sheet[xlsx.utils.encode_cell({ r, c: c + 1 })];
-      if (cell?.v !== labels[c]) {
-        matches = false;
-        break;
-      }
-    }
-    if (matches) {
-      return { rowIndex: r + 1 };
-    }
-  }
-
   return null;
 };
 
@@ -252,7 +229,7 @@ test("places terms and bank blocks after items without duplicating the header", 
   }
 });
 
-test("generates invoice when template header is missing", async () => {
+test("throws when template header is missing", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-missing-header-"));
 
   try {
@@ -281,39 +258,19 @@ test("generates invoice when template header is missing", async () => {
     xlsx.writeFile(templateWorkbook, templatePath);
 
     const items = readCleanedSpecXlsx(cleanedSpecPath);
-    await generateInvoiceXlsx({ templatePath, items, outPath });
-
-    const outputWorkbook = xlsx.readFile(outPath);
-    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
-    const header = findHeaderRow(outputSheet);
-    assert.ok(header);
-
-    const headerValues = [
-      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 1 })]?.v,
-      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 2 })]?.v,
-      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 3 })]?.v,
-      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 4 })]?.v,
-      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 5 })]?.v,
-    ];
-    assert.deepEqual(headerValues, ["#", "Part Number", "Description", "Device Type", "Qty components"]);
-
-    let lineCount = 0;
-    for (let i = 1; i <= items.length; i += 1) {
-      const cell = outputSheet[
-        xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: header.descriptionCol - 1 })
-      ];
-      if (cell?.v) {
-        lineCount += 1;
+    await assert.rejects(
+      () => generateInvoiceXlsx({ templatePath, items, outPath }),
+      (error) => {
+        assert.ok(String(error).includes("invoice template does not match expected format"));
+        return true;
       }
-    }
-
-    assert.equal(lineCount, items.length);
+    );
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
 
-test("generates invoice when template header is incomplete", async () => {
+test("throws when template header is incomplete", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-incomplete-header-"));
 
   try {
@@ -342,32 +299,31 @@ test("generates invoice when template header is incomplete", async () => {
     xlsx.writeFile(templateWorkbook, templatePath);
 
     const items = readCleanedSpecXlsx(cleanedSpecPath);
-    await generateInvoiceXlsx({ templatePath, items, outPath });
-
-    const outputWorkbook = xlsx.readFile(outPath);
-    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
-    const header = findHeaderRowByLabels(outputSheet, [
-      "#",
-      "Part Number",
-      "Description",
-      "Device Type",
-      "Qty components",
-    ]);
-    assert.ok(header);
-    assert.ok(header.rowIndex >= 10);
-
-    let lineCount = 0;
-    for (let i = 1; i <= items.length; i += 1) {
-      const cell = outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: 3 })];
-      if (cell?.v) {
-        lineCount += 1;
+    await assert.rejects(
+      () => generateInvoiceXlsx({ templatePath, items, outPath }),
+      (error) => {
+        assert.ok(String(error).includes("invoice template does not match expected format"));
+        return true;
       }
-    }
-
-    assert.equal(lineCount, items.length);
+    );
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
+});
+
+test("validateInvoiceTemplate throws with missing headers list", () => {
+  const workbook = createWorkbook([["Invoice"], ["Prepared for Customer"]], "Invoice");
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  assert.throws(
+    () => validateInvoiceTemplate(sheet),
+    (error) => {
+      const message = String(error);
+      assert.ok(message.startsWith("Error:"));
+      assert.ok(message.includes("missing headers: Part Number, Description, Qty components"));
+      return true;
+    }
+  );
 });
 
 test("reads cleaned spec with qty components header", async () => {
