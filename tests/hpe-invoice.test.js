@@ -82,3 +82,35 @@ test("generates invoice with expected line count", async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test("reads cleaned spec with qty components header", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-cleaned-spec-"));
+
+  try {
+    const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+    const cleanedRows = [
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "PN-100", "Server Bundle", "Server", "Сервер", 2, 1],
+      [2, "PN-200", "Storage Shelf", "Storage", "Хранилище", 3, 1],
+    ];
+
+    const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
+    xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
+
+    const items = readCleanedSpecXlsx(cleanedSpecPath);
+    assert.equal(items.length, 2);
+    assert.equal(items[0].partNumber, "PN-100");
+    assert.equal(items[0].description, "Server Bundle");
+    assert.equal(items[0].qty, 2);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

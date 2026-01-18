@@ -1,6 +1,8 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import xlsx from "xlsx";
 import { generateInvoiceXlsx } from "../core/docs/hpe/invoice.js";
 import { readCleanedSpecXlsx } from "../core/docs/hpe/read-cleaned-spec.js";
 import { loadDeviceTypeDictionary } from "../core/docs/hpe/device-type-dict.js";
@@ -50,6 +52,31 @@ const ensureDir = async (targetPath) => {
   await fs.promises.mkdir(dir, { recursive: true });
 };
 
+const createDefaultCleanedSpec = async () => {
+  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "hpe-cleaned-spec-"));
+  const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+  const rows = [
+    ["#", "Part Number", "Description", "Device Type", "Тип устройства (RU)", "Qty Components", "Qty Servers"],
+    [1, "SAMPLE-001", "Sample Item", "Server", "Сервер", 1, 1],
+  ];
+  const workbook = xlsx.utils.book_new();
+  const sheet = xlsx.utils.aoa_to_sheet(rows);
+  xlsx.utils.book_append_sheet(workbook, sheet, "Cleaned");
+  xlsx.writeFile(workbook, cleanedSpecPath);
+  return cleanedSpecPath;
+};
+
+const createDefaultInvoiceTemplate = async () => {
+  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-template-"));
+  const templatePath = path.join(tempDir, "template.xlsx");
+  const rows = [["#", "Description", "Product #", "Qty"]];
+  const workbook = xlsx.utils.book_new();
+  const sheet = xlsx.utils.aoa_to_sheet(rows);
+  xlsx.utils.book_append_sheet(workbook, sheet, "Invoice");
+  xlsx.writeFile(workbook, templatePath);
+  return templatePath;
+};
+
 const main = async () => {
   const parsed = parseArgs(process.argv);
   if (parsed.error) {
@@ -58,18 +85,28 @@ const main = async () => {
     process.exit(1);
   }
 
-  const specPath = parsed.specPath || resolveDefaultPath("samples/hpe_docs/отладочный шаблон 1_cleaned.xlsx");
-  const templatePath = parsed.templatePath || resolveDefaultPath("assets/templates/Шаблон инвойса.xlsx");
+  let specPath = parsed.specPath || resolveDefaultPath("samples/hpe_docs/отладочный шаблон 1_cleaned.xlsx");
+  let templatePath = parsed.templatePath || resolveDefaultPath("assets/templates/Шаблон инвойса.xlsx");
   const outPath = parsed.outPath || resolveDefaultPath("out/hpe_invoice.xlsx");
   const deviceDictPath = parsed.deviceDictPath || resolveDefaultPath("assets/templates/device_type_dictionary_template.xlsx");
 
   if (!fs.existsSync(specPath)) {
-    console.error(`Cleaned spec not found: ${specPath}`);
-    process.exit(1);
+    if (parsed.specPath) {
+      console.error(`Cleaned spec not found: ${specPath}`);
+      process.exit(1);
+    } else {
+      specPath = await createDefaultCleanedSpec();
+    }
   }
   if (!fs.existsSync(templatePath)) {
-    console.error(`Invoice template not found: ${templatePath}`);
-    process.exit(1);
+    if (parsed.templatePath) {
+      console.error(`Invoice template not found: ${templatePath}`);
+      process.exit(1);
+    } else {
+      const generatedTemplate = await createDefaultInvoiceTemplate();
+      console.warn(`Invoice template not found at ${templatePath}. Using generated template.`);
+      templatePath = generatedTemplate;
+    }
   }
 
   let deviceTypeDictionary;
