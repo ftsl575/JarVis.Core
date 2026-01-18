@@ -58,6 +58,25 @@ test("throws when cleaned spec is missing Qty Components header", async () => {
   }
 });
 
+test("throws when cleaned spec is missing Description header", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-cleaned-spec-missing-desc-"));
+
+  try {
+    const rows = [
+      ["#", "Part Number", "Qty Components", "Qty Servers"],
+      [1, "PN-300", 1, 1],
+    ];
+    const cleanedSpecPath = await writeWorkbook(rows, tempDir);
+
+    assert.throws(() => readCleanedSpecXlsx(cleanedSpecPath), (error) => {
+      assert.match(error.message, /Description/i);
+      return true;
+    });
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test("reads cleaned spec when required headers are present", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-cleaned-spec-valid-"));
 
