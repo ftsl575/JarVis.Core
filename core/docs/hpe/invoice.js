@@ -23,6 +23,12 @@ const HEADER_LABELS = {
 };
 
 const REQUIRED_HEADER_KEYS = ["partNumber", "description", "qty"];
+const REQUIRED_HEADERS = [
+  HEADER_LABELS.partNumber,
+  HEADER_LABELS.description,
+  HEADER_LABELS.qty,
+];
+const OPTIONAL_ANCHORS = ["[Terms & Conditions:]", "[Bank Account]"];
 
 const DEFAULT_HEADER_ROW = 12;
 
@@ -217,6 +223,60 @@ const findItemsHeaderRow = (sheet, range) => {
   return null;
 };
 
+const findMissingHeaders = (sheet) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return [...REQUIRED_HEADERS];
+  }
+
+  const requiredNormalized = new Map(
+    REQUIRED_HEADERS.map((header) => [normalizeHeaderKey(header), header])
+  );
+  const found = new Set();
+
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      const value = normalizeHeaderKey(cell?.v);
+      if (requiredNormalized.has(value)) {
+        found.add(requiredNormalized.get(value));
+      }
+    }
+  }
+
+  const missing = REQUIRED_HEADERS.filter((header) => !found.has(header));
+  if (missing.length === 0) {
+    const headerRow = findItemsHeaderRow(sheet, range);
+    if (!headerRow) {
+      return [...REQUIRED_HEADERS];
+    }
+  }
+
+  return missing;
+};
+
+const findMissingAnchors = (sheet) => {
+  const missing = [];
+  OPTIONAL_ANCHORS.forEach((anchor) => {
+    if (!findCellByValue(sheet, anchor)) {
+      missing.push(anchor);
+    }
+  });
+  return missing;
+};
+
+export const validateInvoiceTemplate = (sheet) => {
+  const missingHeaders = findMissingHeaders(sheet);
+  if (missingHeaders.length > 0) {
+    throw new Error(
+      `invoice template does not match expected format (missing headers: ${missingHeaders.join(", ")})`
+    );
+  }
+
+  const missingAnchors = findMissingAnchors(sheet);
+  return { missingAnchors };
+};
+
 const ensureInvoiceTableHeader = (sheet) => {
   const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
   const header = range ? findItemsHeaderRow(sheet, range) : null;
@@ -360,6 +420,7 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
     throw new Error("Invoice template worksheet is empty.");
   }
 
+  const { missingAnchors } = validateInvoiceTemplate(sheet);
   const { headerRow, colIndexMap } = ensureInvoiceTableHeader(sheet);
 
   const startRow = headerRow + 1;
@@ -442,4 +503,5 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
   }
 
   xlsx.writeFile(workbook, outPath, { cellStyles: true });
+  return { missingAnchors };
 };
