@@ -83,6 +83,58 @@ test("generates invoice with expected line count", async () => {
   }
 });
 
+test("generates invoice when template header is missing", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-missing-header-"));
+
+  try {
+    const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+
+    const cleanedRows = [
+      ["Qty", "Product #", "Product Description"],
+      [3, "HPE-100", "Server"],
+      [4, "HPE-200", "Storage"],
+    ];
+    const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
+    xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
+
+    const templateRows = [["Invoice"], [""], ["Prepared for Customer"]];
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    const items = readCleanedSpecXlsx(cleanedSpecPath);
+    await generateInvoiceXlsx({ templatePath, items, outPath });
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+    const header = findHeaderRow(outputSheet);
+    assert.ok(header);
+
+    const headerValues = [
+      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 0 })]?.v,
+      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 1 })]?.v,
+      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 2 })]?.v,
+      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 3 })]?.v,
+    ];
+    assert.deepEqual(headerValues, ["#", "Part Number", "Description", "Qty"]);
+
+    let lineCount = 0;
+    for (let i = 1; i <= items.length; i += 1) {
+      const cell = outputSheet[
+        xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: header.descriptionCol - 1 })
+      ];
+      if (cell?.v) {
+        lineCount += 1;
+      }
+    }
+
+    assert.equal(lineCount, items.length);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test("reads cleaned spec with qty components header", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-cleaned-spec-"));
 
