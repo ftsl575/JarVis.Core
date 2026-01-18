@@ -21,11 +21,23 @@ const findHeaderRow = (sheet) => {
   }
 
   for (let r = range.s.r; r <= range.e.r; r += 1) {
+    let partNumberCol;
+    let descriptionCol;
+    let qtyCol;
     for (let c = range.s.c; c <= range.e.c; c += 1) {
       const cell = sheet[xlsx.utils.encode_cell({ r, c })];
-      if (cell?.v === "Description") {
-        return { rowIndex: r + 1, descriptionCol: c + 1 };
+      if (cell?.v === "Part Number") {
+        partNumberCol = c + 1;
       }
+      if (cell?.v === "Description") {
+        descriptionCol = c + 1;
+      }
+      if (cell?.v === "Qty components") {
+        qtyCol = c + 1;
+      }
+    }
+    if (partNumberCol && descriptionCol && qtyCol) {
+      return { rowIndex: r + 1, descriptionCol };
     }
   }
   return null;
@@ -40,7 +52,7 @@ const findHeaderRowByLabels = (sheet, labels) => {
   for (let r = range.s.r; r <= range.e.r; r += 1) {
     let matches = true;
     for (let c = 0; c < labels.length; c += 1) {
-      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      const cell = sheet[xlsx.utils.encode_cell({ r, c: c + 1 })];
       if (cell?.v !== labels[c]) {
         matches = false;
         break;
@@ -64,7 +76,7 @@ const findRowsByLabels = (sheet, labels) => {
   for (let r = range.s.r; r <= range.e.r; r += 1) {
     let match = true;
     for (let c = 0; c < labels.length; c += 1) {
-      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      const cell = sheet[xlsx.utils.encode_cell({ r, c: c + 1 })];
       if (cell?.v !== labels[c]) {
         match = false;
         break;
@@ -96,6 +108,25 @@ const findRowWithValue = (sheet, value) => {
   return null;
 };
 
+const countCellsWithValue = (sheet, value) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return 0;
+  }
+
+  let count = 0;
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      if (cell?.v === value) {
+        count += 1;
+      }
+    }
+  }
+
+  return count;
+};
+
 test("generates invoice with expected line count", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-"));
 
@@ -121,11 +152,11 @@ test("generates invoice with expected line count", async () => {
     xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
 
     const templateRows = [
-      ["", "", "", ""],
-      ["", "", "", ""],
-      ["", "", "", ""],
-      ["№", "Description", "Product #", "Qty"],
-      ["", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "#", "Part Number", "Description", "Device Type", "Qty components"],
+      ["", "", "", "", "", ""],
     ];
     const templateWorkbook = createWorkbook(templateRows, "Invoice");
     xlsx.writeFile(templateWorkbook, templatePath);
@@ -181,9 +212,14 @@ test("places terms and bank blocks after items without duplicating the header", 
     const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
     xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
 
-    const templateRows = Array.from({ length: 20 }, () => ["", "", "", ""]);
-    templateRows[15][0] = "Terms";
-    templateRows[17][0] = "Bank";
+    const templateRows = Array.from({ length: 20 }, () => ["", "", "", "", "", ""]);
+    templateRows[10][1] = "#";
+    templateRows[10][2] = "Part Number";
+    templateRows[10][3] = "Description";
+    templateRows[10][4] = "Device Type";
+    templateRows[10][5] = "Qty components";
+    templateRows[12][3] = "[Terms & Conditions:]";
+    templateRows[18][3] = "[Bank Account]";
     const templateWorkbook = createWorkbook(templateRows, "Invoice");
     xlsx.writeFile(templateWorkbook, templatePath);
 
@@ -192,13 +228,20 @@ test("places terms and bank blocks after items without duplicating the header", 
 
     const outputWorkbook = xlsx.readFile(outPath);
     const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
-    const headerRows = findRowsByLabels(outputSheet, ["#", "Part Number", "Description", "Qty"]);
+    const headerRows = findRowsByLabels(outputSheet, [
+      "#",
+      "Part Number",
+      "Description",
+      "Device Type",
+      "Qty components",
+    ]);
     assert.equal(headerRows.length, 1);
+    assert.equal(countCellsWithValue(outputSheet, "Part Number"), 1);
 
     const headerRow = headerRows[0];
     const lastItemRow = headerRow + items.length;
-    const termsRow = findRowWithValue(outputSheet, "Terms");
-    const bankRow = findRowWithValue(outputSheet, "Bank");
+    const termsRow = findRowWithValue(outputSheet, "[Terms & Conditions:]");
+    const bankRow = findRowWithValue(outputSheet, "[Bank Account]");
 
     assert.ok(termsRow);
     assert.ok(bankRow);
@@ -246,12 +289,13 @@ test("generates invoice when template header is missing", async () => {
     assert.ok(header);
 
     const headerValues = [
-      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 0 })]?.v,
       outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 1 })]?.v,
       outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 2 })]?.v,
       outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 3 })]?.v,
+      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 4 })]?.v,
+      outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex - 1, c: 5 })]?.v,
     ];
-    assert.deepEqual(headerValues, ["#", "Part Number", "Description", "Qty"]);
+    assert.deepEqual(headerValues, ["#", "Part Number", "Description", "Device Type", "Qty components"]);
 
     let lineCount = 0;
     for (let i = 1; i <= items.length; i += 1) {
@@ -302,13 +346,19 @@ test("generates invoice when template header is incomplete", async () => {
 
     const outputWorkbook = xlsx.readFile(outPath);
     const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
-    const header = findHeaderRowByLabels(outputSheet, ["#", "Part Number", "Description", "Qty"]);
+    const header = findHeaderRowByLabels(outputSheet, [
+      "#",
+      "Part Number",
+      "Description",
+      "Device Type",
+      "Qty components",
+    ]);
     assert.ok(header);
     assert.ok(header.rowIndex >= 10);
 
     let lineCount = 0;
     for (let i = 1; i <= items.length; i += 1) {
-      const cell = outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: 2 })];
+      const cell = outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: 3 })];
       if (cell?.v) {
         lineCount += 1;
       }

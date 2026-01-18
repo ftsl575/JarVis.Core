@@ -10,68 +10,21 @@ const normalizeString = (value) => {
   return String(value).trim();
 };
 
-const HEADER_MATCHERS = {
-  lineNo: [/^#$/i, /^№$/i, /^no\.?$/i, /line/i],
-  description: [/description/i, /описание/i, /наименован/i, /product\s*descript/i],
-  partNumber: [/part\s*number/i, /product\s*#?/i, /^pn$/i, /артикул/i, /номер/i],
-  qty: [/^qty$/i, /quantity/i, /кол-?во/i, /количество/i],
-};
+const normalizeHeaderValue = (value) => normalizeString(value).replace(/\s+/g, " ");
 
-const DEFAULT_HEADER_LABELS = {
+const normalizeHeaderKey = (value) => normalizeHeaderValue(value).toLowerCase();
+
+const HEADER_LABELS = {
   lineNo: "#",
   partNumber: "Part Number",
   description: "Description",
-  qty: "Qty",
+  deviceType: "Device Type",
+  qty: "Qty components",
 };
+
+const REQUIRED_HEADER_KEYS = ["partNumber", "description", "qty"];
 
 const DEFAULT_HEADER_ROW = 12;
-
-const findHeaderRow = (sheet, range) => {
-  const maxRow = Math.min(range.e.r, range.s.r + 40);
-  let bestMatch = null;
-
-  for (let r = range.s.r; r <= maxRow; r += 1) {
-    const match = {
-      rowIndex: r + 1,
-      lineNo: null,
-      description: null,
-      partNumber: null,
-      qty: null,
-      matchCount: 0,
-    };
-
-    for (let c = range.s.c; c <= range.e.c; c += 1) {
-      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
-      const value = normalizeString(cell?.v);
-      if (!value) {
-        continue;
-      }
-
-      if (!match.lineNo && HEADER_MATCHERS.lineNo.some((regex) => regex.test(value))) {
-        match.lineNo = c + 1;
-        match.matchCount += 1;
-      }
-      if (!match.description && HEADER_MATCHERS.description.some((regex) => regex.test(value))) {
-        match.description = c + 1;
-        match.matchCount += 1;
-      }
-      if (!match.partNumber && HEADER_MATCHERS.partNumber.some((regex) => regex.test(value))) {
-        match.partNumber = c + 1;
-        match.matchCount += 1;
-      }
-      if (!match.qty && HEADER_MATCHERS.qty.some((regex) => regex.test(value))) {
-        match.qty = c + 1;
-        match.matchCount += 1;
-      }
-    }
-
-    if (match.matchCount > 0 && (!bestMatch || match.matchCount > bestMatch.matchCount)) {
-      bestMatch = match;
-    }
-  }
-
-  return bestMatch;
-};
 
 const updateSheetRange = (sheet, row, col) => {
   const cellPosition = { r: row - 1, c: col - 1 };
@@ -118,6 +71,16 @@ const setCellValue = (sheet, row, col, value, templateCell) => {
 
   sheet[cellRef] = cell;
   updateSheetRange(sheet, row, col);
+};
+
+const cloneCell = (cell) => {
+  if (!cell) {
+    return null;
+  }
+  if (typeof structuredClone === "function") {
+    return structuredClone(cell);
+  }
+  return JSON.parse(JSON.stringify(cell));
 };
 
 const cloneTemplateRow = (sheet, templateRowIndex, targetRowIndex) => {
@@ -209,36 +172,180 @@ const findFallbackHeaderRow = (sheet, range) => {
   return targetRow;
 };
 
+const findItemsHeaderRow = (sheet, range) => {
+  const maxRow = Math.min(range.e.r, range.s.r + 40);
+
+  for (let r = range.s.r; r <= maxRow; r += 1) {
+    const colIndexMap = {
+      lineNo: null,
+      partNumber: null,
+      description: null,
+      deviceType: null,
+      qty: null,
+    };
+
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      const value = normalizeHeaderKey(cell?.v);
+      if (!value) {
+        continue;
+      }
+
+      if (!colIndexMap.lineNo && value === normalizeHeaderKey(HEADER_LABELS.lineNo)) {
+        colIndexMap.lineNo = c + 1;
+      }
+      if (!colIndexMap.partNumber && value === normalizeHeaderKey(HEADER_LABELS.partNumber)) {
+        colIndexMap.partNumber = c + 1;
+      }
+      if (!colIndexMap.description && value === normalizeHeaderKey(HEADER_LABELS.description)) {
+        colIndexMap.description = c + 1;
+      }
+      if (!colIndexMap.deviceType && value === normalizeHeaderKey(HEADER_LABELS.deviceType)) {
+        colIndexMap.deviceType = c + 1;
+      }
+      if (!colIndexMap.qty && value === normalizeHeaderKey(HEADER_LABELS.qty)) {
+        colIndexMap.qty = c + 1;
+      }
+    }
+
+    const hasRequired = REQUIRED_HEADER_KEYS.every((key) => colIndexMap[key]);
+    if (hasRequired) {
+      return { headerRow: r + 1, colIndexMap };
+    }
+  }
+
+  return null;
+};
+
 const ensureInvoiceTableHeader = (sheet) => {
   const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
-  const header = range ? findHeaderRow(sheet, range) : null;
+  const header = range ? findItemsHeaderRow(sheet, range) : null;
 
-  if (header && header.description && header.qty) {
-    return {
-      headerRow: header.rowIndex,
-      colIndexMap: {
-        lineNo: header.lineNo,
-        partNumber: header.partNumber,
-        description: header.description,
-        qty: header.qty,
-      },
-    };
+  if (header) {
+    return header;
   }
 
   const headerRow = findFallbackHeaderRow(sheet, range);
   const colIndexMap = {
-    lineNo: 1,
-    partNumber: 2,
-    description: 3,
-    qty: 4,
+    lineNo: 2,
+    partNumber: 3,
+    description: 4,
+    deviceType: 5,
+    qty: 6,
   };
 
-  setCellValue(sheet, headerRow, colIndexMap.lineNo, DEFAULT_HEADER_LABELS.lineNo);
-  setCellValue(sheet, headerRow, colIndexMap.partNumber, DEFAULT_HEADER_LABELS.partNumber);
-  setCellValue(sheet, headerRow, colIndexMap.description, DEFAULT_HEADER_LABELS.description);
-  setCellValue(sheet, headerRow, colIndexMap.qty, DEFAULT_HEADER_LABELS.qty);
+  setCellValue(sheet, headerRow, colIndexMap.lineNo, HEADER_LABELS.lineNo);
+  setCellValue(sheet, headerRow, colIndexMap.partNumber, HEADER_LABELS.partNumber);
+  setCellValue(sheet, headerRow, colIndexMap.description, HEADER_LABELS.description);
+  setCellValue(sheet, headerRow, colIndexMap.deviceType, HEADER_LABELS.deviceType);
+  setCellValue(sheet, headerRow, colIndexMap.qty, HEADER_LABELS.qty);
 
   return { headerRow, colIndexMap };
+};
+
+const findCellByValue = (sheet, value) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return null;
+  }
+
+  const target = normalizeString(value);
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      if (normalizeString(cell?.v) === target) {
+        return { rowIndex: r + 1, colIndex: c + 1 };
+      }
+    }
+  }
+  return null;
+};
+
+const captureBlock = (sheet, startRow, rowCount) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return null;
+  }
+
+  const rows = [];
+  const cells = [];
+
+  for (let offset = 0; offset < rowCount; offset += 1) {
+    const rowIndex = startRow + offset;
+    if (sheet["!rows"]) {
+      rows.push(sheet["!rows"][rowIndex - 1]);
+    }
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const ref = xlsx.utils.encode_cell({ r: rowIndex - 1, c });
+      if (sheet[ref]) {
+        cells.push({ r: rowIndex, c: c + 1, cell: cloneCell(sheet[ref]) });
+      }
+    }
+  }
+
+  const merges = (sheet["!merges"] || []).filter((merge) => {
+    const start = merge.s.r + 1;
+    const end = merge.e.r + 1;
+    return start >= startRow && end <= startRow + rowCount - 1;
+  });
+
+  return { startRow, rowCount, rows, cells, merges };
+};
+
+const clearBlock = (sheet, startRow, rowCount) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return;
+  }
+
+  for (let offset = 0; offset < rowCount; offset += 1) {
+    const rowIndex = startRow + offset;
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const ref = xlsx.utils.encode_cell({ r: rowIndex - 1, c });
+      if (sheet[ref]) {
+        delete sheet[ref];
+      }
+    }
+    if (sheet["!rows"]) {
+      sheet["!rows"][rowIndex - 1] = undefined;
+    }
+  }
+
+  if (sheet["!merges"]) {
+    sheet["!merges"] = sheet["!merges"].filter((merge) => {
+      const start = merge.s.r + 1;
+      const end = merge.e.r + 1;
+      return !(start >= startRow && end <= startRow + rowCount - 1);
+    });
+  }
+};
+
+const placeBlock = (sheet, block, targetRow) => {
+  if (!block) {
+    return;
+  }
+
+  const rowOffset = targetRow - block.startRow;
+
+  block.cells.forEach(({ r, c, cell }) => {
+    const targetRef = xlsx.utils.encode_cell({ r: r - 1 + rowOffset, c: c - 1 });
+    sheet[targetRef] = cloneCell(cell);
+    updateSheetRange(sheet, r + rowOffset, c);
+  });
+
+  if (sheet["!rows"] && block.rows.length > 0) {
+    for (let i = 0; i < block.rows.length; i += 1) {
+      sheet["!rows"][targetRow - 1 + i] = block.rows[i];
+    }
+  }
+
+  if (block.merges.length > 0) {
+    const offsetMerges = block.merges.map((merge) => ({
+      s: { r: merge.s.r + rowOffset, c: merge.s.c },
+      e: { r: merge.e.r + rowOffset, c: merge.e.c },
+    }));
+    sheet["!merges"] = [...(sheet["!merges"] || []), ...offsetMerges];
+  }
 };
 
 export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
@@ -278,6 +385,9 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
       partNumber: colIndexMap.partNumber
         ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: colIndexMap.partNumber - 1 })]
         : null,
+      deviceType: colIndexMap.deviceType
+        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: colIndexMap.deviceType - 1 })]
+        : null,
       qty: colIndexMap.qty
         ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: colIndexMap.qty - 1 })]
         : null,
@@ -301,6 +411,33 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
     }
     if (colIndexMap.qty) {
       setCellValue(sheet, rowIndex, colIndexMap.qty, item.qty, templateCells.qty);
+    }
+    if (colIndexMap.deviceType) {
+      setCellValue(sheet, rowIndex, colIndexMap.deviceType, item.deviceType || "", templateCells.deviceType);
+    }
+  }
+
+  const itemsStartRow = startRow;
+  const itemCount = items.length;
+  const lastItemRow = itemCount > 0 ? itemsStartRow + itemCount - 1 : itemsStartRow - 1;
+
+  const termsAnchor = findCellByValue(sheet, "[Terms & Conditions:]");
+  const bankAnchor = findCellByValue(sheet, "[Bank Account]");
+
+  if (termsAnchor && bankAnchor) {
+    const blockHeight = 6;
+    const targetTermsRow = Math.max(termsAnchor.rowIndex, lastItemRow + 3);
+    const targetBankRow = Math.max(bankAnchor.rowIndex, targetTermsRow + blockHeight + 2);
+
+    if (targetTermsRow !== termsAnchor.rowIndex || targetBankRow !== bankAnchor.rowIndex) {
+      const termsBlock = captureBlock(sheet, termsAnchor.rowIndex, blockHeight);
+      const bankBlock = captureBlock(sheet, bankAnchor.rowIndex, blockHeight);
+
+      clearBlock(sheet, termsAnchor.rowIndex, blockHeight);
+      clearBlock(sheet, bankAnchor.rowIndex, blockHeight);
+
+      placeBlock(sheet, termsBlock, targetTermsRow);
+      placeBlock(sheet, bankBlock, targetBankRow);
     }
   }
 

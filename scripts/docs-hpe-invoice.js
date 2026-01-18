@@ -69,7 +69,7 @@ const createDefaultCleanedSpec = async () => {
 const createDefaultInvoiceTemplate = async () => {
   const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-template-"));
   const templatePath = path.join(tempDir, "template.xlsx");
-  const rows = [["#", "Description", "Product #", "Qty"]];
+  const rows = [["", "#", "Part Number", "Description", "Device Type", "Qty components"]];
   const workbook = xlsx.utils.book_new();
   const sheet = xlsx.utils.aoa_to_sheet(rows);
   xlsx.utils.book_append_sheet(workbook, sheet, "Invoice");

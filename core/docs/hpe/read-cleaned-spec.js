@@ -33,7 +33,7 @@ const HEADER_MATCHERS = {
   description: [/description/i, /описание/i, /наименован/i, /product\s*descript/i],
 };
 
-const REQUIRED_HEADERS = ["Part Number", "Qty Components"];
+const REQUIRED_HEADERS = ["Part Number", "Description", "Qty Components"];
 
 const isQtyServersHeader = (value) => /qty\s*servers?/i.test(value);
 
