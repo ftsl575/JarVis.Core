@@ -77,6 +77,12 @@ const createDefaultInvoiceTemplate = async () => {
   return templatePath;
 };
 
+const isValidationError = (error) =>
+  error instanceof Error &&
+  (error.message.startsWith("Cleaned spec is missing required columns:") ||
+    error.message === "Invoice template has no worksheets." ||
+    error.message === "Invoice template worksheet is empty.");
+
 const main = async () => {
   const parsed = parseArgs(process.argv);
   if (parsed.error) {
@@ -126,4 +132,13 @@ const main = async () => {
   console.log(`Invoice generated: ${outPath}`);
 };
 
-main();
+main().catch((error) => {
+  if (isValidationError(error)) {
+    console.error(`Error: ${error.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  process.exitCode = 1;
+  throw error;
+});
