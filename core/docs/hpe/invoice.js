@@ -24,7 +24,7 @@ const DEFAULT_HEADER_LABELS = {
   qty: "Qty",
 };
 
-const DEFAULT_HEADER_ROW = 10;
+const DEFAULT_HEADER_ROW = 12;
 
 const findHeaderRow = (sheet, range) => {
   const maxRow = Math.min(range.e.r, range.s.r + 40);
@@ -196,17 +196,12 @@ const findFallbackHeaderRow = (sheet, range) => {
     return DEFAULT_HEADER_ROW;
   }
 
-  let lastContentRow = null;
-  for (let r = range.s.r; r <= range.e.r; r += 1) {
-    if (rowHasContent(sheet, r, range)) {
-      lastContentRow = r;
-    }
-  }
+  let targetRow = DEFAULT_HEADER_ROW;
+  const maxRow = Math.max(range.e.r + 2, DEFAULT_HEADER_ROW);
 
-  let targetRow = Math.max(DEFAULT_HEADER_ROW, (lastContentRow ?? -1) + 2);
-  while (targetRow <= range.e.r + 1) {
+  while (targetRow <= maxRow) {
     if (!rowHasContent(sheet, targetRow - 1, range)) {
-      break;
+      return targetRow;
     }
     targetRow += 1;
   }
