@@ -24,6 +24,42 @@ The `canon:hpe` command expects a folder of `.xlsx` files and writes exports to 
 - `out/items.jsonl`
 - `out/summary.json`
 
+## HPE invoice generation
+
+Prerequisites:
+
+- `npm ci`
+
+Cleaned spec input format (headers must match exactly, in order):
+
+- `#`
+- `Part Number`
+- `Description`
+- `Device Type`
+- `Тип устройства (RU)`
+- `Qty Components`
+- `Qty Servers`
+
+Notes:
+
+- `Qty Components` is used as the line quantity.
+- `Qty Servers` is ignored by the parser.
+
+Run the command:
+
+```bash
+npm run docs:hpe:invoice
+```
+
+Output:
+
+- `out/hpe_invoice.xlsx`
+
+Troubleshooting:
+
+- If the file is not generated, run `npm test` first and confirm the cleaned spec headers match exactly.
+- The binary `.xlsx` templates are not committed; invoice generation works without committing them.
+
 ## Handoff / Switching Chat Windows
 
 Use the handoff docs to pick up work quickly in a new chat window:
