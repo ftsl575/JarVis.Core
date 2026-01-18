@@ -132,13 +132,14 @@ const main = async () => {
   console.log(`Invoice generated: ${outPath}`);
 };
 
-main().catch((error) => {
+try {
+  await main();
+} catch (error) {
   if (isValidationError(error)) {
     console.error(`Error: ${error.message}`);
     process.exitCode = 1;
-    return;
+  } else {
+    console.error(error);
+    process.exitCode = 1;
   }
-
-  process.exitCode = 1;
-  throw error;
-});
+}
