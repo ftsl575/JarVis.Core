@@ -11,6 +11,10 @@ const normalizeString = (value) => {
   return String(value).trim();
 };
 
+const normalizeHeaderValue = (value) => normalizeString(value).replace(/\s+/g, " ");
+
+const normalizeHeaderKey = (value) => normalizeHeaderValue(value).toLowerCase();
+
 const parseQty = (value) => {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -29,7 +33,24 @@ const HEADER_MATCHERS = {
   description: [/description/i, /описание/i, /наименован/i, /product\s*descript/i],
 };
 
+const REQUIRED_HEADERS = ["Part Number", "Qty Components"];
+
 const isQtyServersHeader = (value) => /qty\s*servers?/i.test(value);
+
+const getHeadersAtRow = (sheet, range, rowIndex) => {
+  const headers = [];
+  const row = rowIndex - 1;
+
+  for (let c = range.s.c; c <= range.e.c; c += 1) {
+    const cell = sheet[xlsx.utils.encode_cell({ r: row, c })];
+    const value = normalizeHeaderValue(cell?.v);
+    if (value) {
+      headers.push(value);
+    }
+  }
+
+  return headers;
+};
 
 const findHeader = (sheet, range) => {
   const maxRow = Math.min(range.e.r, range.s.r + 25);
@@ -116,6 +137,20 @@ export const readCleanedSpecXlsx = (filePath, { deviceTypeDictionary } = {}) => 
   const range = xlsx.utils.decode_range(sheet["!ref"]);
   const header = findHeader(sheet, range);
   const headerRow = header?.rowIndex ?? null;
+  const headerRowIndex = headerRow ?? range.s.r + 1;
+  const foundHeaders = getHeadersAtRow(sheet, range, headerRowIndex);
+  const normalizedFoundHeaders = foundHeaders.map((value) => normalizeHeaderKey(value));
+  const missingRequiredHeaders = REQUIRED_HEADERS.filter(
+    (required) => !normalizedFoundHeaders.includes(normalizeHeaderKey(required))
+  );
+  if (missingRequiredHeaders.length > 0) {
+    const foundList = foundHeaders.length > 0 ? foundHeaders.join(", ") : "none";
+    throw new Error(
+      `Cleaned spec is missing required columns: ${missingRequiredHeaders.join(
+        ", "
+      )}. Found: ${foundList}.`
+    );
+  }
   const startRow = headerRow ? headerRow + 1 : range.s.r + 1;
 
   const items = [];

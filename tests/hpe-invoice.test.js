@@ -63,9 +63,17 @@ test("generates invoice with expected line count", async () => {
     const outPath = path.join(tempDir, "invoice.xlsx");
 
     const cleanedRows = [
-      ["Qty", "Product #", "Product Description"],
-      [2, "ABC123", "Widget"],
-      [1, "DEF456", "Gadget"],
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "ABC123", "Widget", "Device", "Устройство", 2, 1],
+      [2, "DEF456", "Gadget", "Device", "Устройство", 1, 1],
     ];
     const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
     xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
@@ -115,9 +123,17 @@ test("generates invoice when template header is missing", async () => {
     const outPath = path.join(tempDir, "invoice.xlsx");
 
     const cleanedRows = [
-      ["Qty", "Product #", "Product Description"],
-      [3, "HPE-100", "Server"],
-      [4, "HPE-200", "Storage"],
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "HPE-100", "Server", "Server", "Сервер", 3, 1],
+      [2, "HPE-200", "Storage", "Storage", "Хранилище", 4, 1],
     ];
     const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
     xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
@@ -167,9 +183,17 @@ test("generates invoice when template header is incomplete", async () => {
     const outPath = path.join(tempDir, "invoice.xlsx");
 
     const cleanedRows = [
-      ["Qty", "Product #", "Product Description"],
-      [1, "HPE-300", "Compute Node"],
-      [2, "HPE-400", "Expansion Shelf"],
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "HPE-300", "Compute Node", "Server", "Сервер", 1, 1],
+      [2, "HPE-400", "Expansion Shelf", "Storage", "Хранилище", 2, 1],
     ];
     const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
     xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
