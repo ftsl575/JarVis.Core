@@ -230,10 +230,6 @@ const ensureInvoiceTableHeader = (sheet) => {
     };
   }
 
-  if (header) {
-    throw new Error("Unable to locate invoice table header.");
-  }
-
   const headerRow = findFallbackHeaderRow(sheet, range);
   const colIndexMap = {
     lineNo: 1,

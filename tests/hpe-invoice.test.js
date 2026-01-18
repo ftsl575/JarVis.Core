@@ -31,6 +31,29 @@ const findHeaderRow = (sheet) => {
   return null;
 };
 
+const findHeaderRowByLabels = (sheet, labels) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return null;
+  }
+
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    let matches = true;
+    for (let c = 0; c < labels.length; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      if (cell?.v !== labels[c]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) {
+      return { rowIndex: r + 1 };
+    }
+  }
+
+  return null;
+};
+
 test("generates invoice with expected line count", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-"));
 
@@ -124,6 +147,49 @@ test("generates invoice when template header is missing", async () => {
       const cell = outputSheet[
         xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: header.descriptionCol - 1 })
       ];
+      if (cell?.v) {
+        lineCount += 1;
+      }
+    }
+
+    assert.equal(lineCount, items.length);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("generates invoice when template header is incomplete", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-incomplete-header-"));
+
+  try {
+    const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+
+    const cleanedRows = [
+      ["Qty", "Product #", "Product Description"],
+      [1, "HPE-300", "Compute Node"],
+      [2, "HPE-400", "Expansion Shelf"],
+    ];
+    const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
+    xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
+
+    const templateRows = [["Invoice"], [""], ["Description"]];
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    const items = readCleanedSpecXlsx(cleanedSpecPath);
+    await generateInvoiceXlsx({ templatePath, items, outPath });
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+    const header = findHeaderRowByLabels(outputSheet, ["#", "Part Number", "Description", "Qty"]);
+    assert.ok(header);
+    assert.ok(header.rowIndex >= 10);
+
+    let lineCount = 0;
+    for (let i = 1; i <= items.length; i += 1) {
+      const cell = outputSheet[xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: 2 })];
       if (cell?.v) {
         lineCount += 1;
       }
