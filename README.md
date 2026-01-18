@@ -94,5 +94,6 @@ Use the handoff docs to pick up work quickly in a new chat window:
 
 - [docs/HANDOFF.md](docs/HANDOFF.md)
 - [docs/STATUS.md](docs/STATUS.md)
+- Status freeze snapshots live in [docs/status/](docs/status/).
 
 Run `npm run handoff` to print the current handoff notes.
