@@ -60,6 +60,13 @@ Troubleshooting:
 - If the file is not generated, run `npm test` first and confirm the cleaned spec headers match exactly.
 - The binary `.xlsx` templates are not committed; invoice generation works without committing them.
 
+## Repo hygiene / folder policy
+
+- `samples/hpe/`: raw vendor HPE input specs (`.xlsx`) only.
+- `samples/hpe_docs/`: reference outputs, examples, or docs (`.xlsx/.pdf/.png`).
+- `out/` and `logs/` are runtime outputs and are ignored by git.
+- Keep `git status` clean by writing generated artifacts to `out/` (or other ignored paths) during normal runs.
+
 ## Handoff / Switching Chat Windows
 
 Use the handoff docs to pick up work quickly in a new chat window:

@@ -8,6 +8,10 @@ pnpm-debug.log*
 # Output
 out/
 logs/
+*_cleaned.xlsx
+*_invoice.xlsx
+!samples/hpe/**
+!samples/hpe_docs/**
 
 # Env
 .env
