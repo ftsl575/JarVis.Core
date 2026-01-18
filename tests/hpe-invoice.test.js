@@ -54,6 +54,48 @@ const findHeaderRowByLabels = (sheet, labels) => {
   return null;
 };
 
+const findRowsByLabels = (sheet, labels) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return [];
+  }
+
+  const matches = [];
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    let match = true;
+    for (let c = 0; c < labels.length; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      if (cell?.v !== labels[c]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      matches.push(r + 1);
+    }
+  }
+
+  return matches;
+};
+
+const findRowWithValue = (sheet, value) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return null;
+  }
+
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      if (cell?.v === value) {
+        return r + 1;
+      }
+    }
+  }
+
+  return null;
+};
+
 test("generates invoice with expected line count", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-"));
 
@@ -109,6 +151,59 @@ test("generates invoice with expected line count", async () => {
     }
 
     assert.equal(lineCount, items.length);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("places terms and bank blocks after items without duplicating the header", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-layout-"));
+
+  try {
+    const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+
+    const cleanedRows = [
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "SKU-100", "Primary", "Device", "Устройство", 1, 1],
+      [2, "SKU-200", "Secondary", "Device", "Устройство", 2, 1],
+      [3, "SKU-300", "Tertiary", "Device", "Устройство", 1, 1],
+    ];
+    const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
+    xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
+
+    const templateRows = Array.from({ length: 20 }, () => ["", "", "", ""]);
+    templateRows[15][0] = "Terms";
+    templateRows[17][0] = "Bank";
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    const items = readCleanedSpecXlsx(cleanedSpecPath);
+    await generateInvoiceXlsx({ templatePath, items, outPath });
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+    const headerRows = findRowsByLabels(outputSheet, ["#", "Part Number", "Description", "Qty"]);
+    assert.equal(headerRows.length, 1);
+
+    const headerRow = headerRows[0];
+    const lastItemRow = headerRow + items.length;
+    const termsRow = findRowWithValue(outputSheet, "Terms");
+    const bankRow = findRowWithValue(outputSheet, "Bank");
+
+    assert.ok(termsRow);
+    assert.ok(bankRow);
+    assert.ok(termsRow > lastItemRow);
+    assert.ok(bankRow > lastItemRow);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
