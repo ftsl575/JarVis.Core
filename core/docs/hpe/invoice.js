@@ -17,6 +17,15 @@ const HEADER_MATCHERS = {
   qty: [/^qty$/i, /quantity/i, /кол-?во/i, /количество/i],
 };
 
+const DEFAULT_HEADER_LABELS = {
+  lineNo: "#",
+  partNumber: "Part Number",
+  description: "Description",
+  qty: "Qty",
+};
+
+const DEFAULT_HEADER_ROW = 10;
+
 const findHeaderRow = (sheet, range) => {
   const maxRow = Math.min(range.e.r, range.s.r + 40);
   let bestMatch = null;
@@ -64,6 +73,30 @@ const findHeaderRow = (sheet, range) => {
   return bestMatch;
 };
 
+const updateSheetRange = (sheet, row, col) => {
+  const cellPosition = { r: row - 1, c: col - 1 };
+  if (!sheet["!ref"]) {
+    sheet["!ref"] = xlsx.utils.encode_range({ s: cellPosition, e: cellPosition });
+    return;
+  }
+
+  const range = xlsx.utils.decode_range(sheet["!ref"]);
+  if (cellPosition.r < range.s.r) {
+    range.s.r = cellPosition.r;
+  }
+  if (cellPosition.c < range.s.c) {
+    range.s.c = cellPosition.c;
+  }
+  if (cellPosition.r > range.e.r) {
+    range.e.r = cellPosition.r;
+  }
+  if (cellPosition.c > range.e.c) {
+    range.e.c = cellPosition.c;
+  }
+
+  sheet["!ref"] = xlsx.utils.encode_range(range);
+};
+
 const setCellValue = (sheet, row, col, value, templateCell) => {
   const cellRef = xlsx.utils.encode_cell({ r: row - 1, c: col - 1 });
   const cell = sheet[cellRef] || {};
@@ -84,6 +117,7 @@ const setCellValue = (sheet, row, col, value, templateCell) => {
   }
 
   sheet[cellRef] = cell;
+  updateSheetRange(sheet, row, col);
 };
 
 const cloneTemplateRow = (sheet, templateRowIndex, targetRowIndex) => {
@@ -147,6 +181,71 @@ const shiftRowsDown = (sheet, startRow, delta) => {
   sheet["!ref"] = xlsx.utils.encode_range(range);
 };
 
+const rowHasContent = (sheet, rowIndex, range) => {
+  for (let c = range.s.c; c <= range.e.c; c += 1) {
+    const cell = sheet[xlsx.utils.encode_cell({ r: rowIndex, c })];
+    if (normalizeString(cell?.v)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const findFallbackHeaderRow = (sheet, range) => {
+  if (!range) {
+    return DEFAULT_HEADER_ROW;
+  }
+
+  let lastContentRow = null;
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    if (rowHasContent(sheet, r, range)) {
+      lastContentRow = r;
+    }
+  }
+
+  let targetRow = Math.max(DEFAULT_HEADER_ROW, (lastContentRow ?? -1) + 2);
+  while (targetRow <= range.e.r + 1) {
+    if (!rowHasContent(sheet, targetRow - 1, range)) {
+      break;
+    }
+    targetRow += 1;
+  }
+
+  return targetRow;
+};
+
+const ensureInvoiceTableHeader = (sheet) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  const header = range ? findHeaderRow(sheet, range) : null;
+
+  if (header && header.description && header.qty) {
+    return {
+      headerRow: header.rowIndex,
+      colIndexMap: {
+        lineNo: header.lineNo,
+        partNumber: header.partNumber,
+        description: header.description,
+        qty: header.qty,
+      },
+    };
+  }
+
+  const headerRow = findFallbackHeaderRow(sheet, range);
+  const colIndexMap = {
+    lineNo: 1,
+    partNumber: 2,
+    description: 3,
+    qty: 4,
+  };
+
+  setCellValue(sheet, headerRow, colIndexMap.lineNo, DEFAULT_HEADER_LABELS.lineNo);
+  setCellValue(sheet, headerRow, colIndexMap.partNumber, DEFAULT_HEADER_LABELS.partNumber);
+  setCellValue(sheet, headerRow, colIndexMap.description, DEFAULT_HEADER_LABELS.description);
+  setCellValue(sheet, headerRow, colIndexMap.qty, DEFAULT_HEADER_LABELS.qty);
+
+  return { headerRow, colIndexMap };
+};
+
 export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
   const workbook = xlsx.readFile(templatePath, { cellStyles: true });
   const sheetName = workbook.SheetNames[0];
@@ -155,17 +254,13 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
   }
 
   const sheet = workbook.Sheets[sheetName];
-  if (!sheet || !sheet["!ref"]) {
+  if (!sheet) {
     throw new Error("Invoice template worksheet is empty.");
   }
 
-  const range = xlsx.utils.decode_range(sheet["!ref"]);
-  const header = findHeaderRow(sheet, range);
-  if (!header || !header.description || !header.qty) {
-    throw new Error("Unable to locate invoice table header.");
-  }
+  const { headerRow, colIndexMap } = ensureInvoiceTableHeader(sheet);
 
-  const startRow = header.rowIndex + 1;
+  const startRow = headerRow + 1;
   const delta = Math.max(0, items.length - 1);
 
   if (delta > 0) {
@@ -179,32 +274,38 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
     }
 
     const templateCells = {
-      lineNo: header.lineNo
-        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: header.lineNo - 1 })]
+      lineNo: colIndexMap.lineNo
+        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: colIndexMap.lineNo - 1 })]
         : null,
-      description: header.description
-        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: header.description - 1 })]
+      description: colIndexMap.description
+        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: colIndexMap.description - 1 })]
         : null,
-      partNumber: header.partNumber
-        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: header.partNumber - 1 })]
+      partNumber: colIndexMap.partNumber
+        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: colIndexMap.partNumber - 1 })]
         : null,
-      qty: header.qty
-        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: header.qty - 1 })]
+      qty: colIndexMap.qty
+        ? sheet[xlsx.utils.encode_cell({ r: startRow - 1, c: colIndexMap.qty - 1 })]
         : null,
     };
 
     const item = items[index];
-    if (header.lineNo) {
-      setCellValue(sheet, rowIndex, header.lineNo, item.lineNo, templateCells.lineNo);
+    if (colIndexMap.lineNo) {
+      setCellValue(sheet, rowIndex, colIndexMap.lineNo, item.lineNo, templateCells.lineNo);
     }
-    if (header.description) {
-      setCellValue(sheet, rowIndex, header.description, item.description, templateCells.description);
+    if (colIndexMap.description) {
+      setCellValue(sheet, rowIndex, colIndexMap.description, item.description, templateCells.description);
     }
-    if (header.partNumber) {
-      setCellValue(sheet, rowIndex, header.partNumber, item.partNumber || "", templateCells.partNumber);
+    if (colIndexMap.partNumber) {
+      setCellValue(
+        sheet,
+        rowIndex,
+        colIndexMap.partNumber,
+        item.partNumber || "",
+        templateCells.partNumber
+      );
     }
-    if (header.qty) {
-      setCellValue(sheet, rowIndex, header.qty, item.qty, templateCells.qty);
+    if (colIndexMap.qty) {
+      setCellValue(sheet, rowIndex, colIndexMap.qty, item.qty, templateCells.qty);
     }
   }
 

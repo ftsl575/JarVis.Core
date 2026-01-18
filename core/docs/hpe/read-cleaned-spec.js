@@ -23,10 +23,13 @@ const parseQty = (value) => {
 };
 
 const HEADER_MATCHERS = {
-  qty: [/^qty$/i, /quantity/i, /кол-?во/i, /количество/i],
+  qtyPreferred: [/qty\s*components/i, /components\s*qty/i],
+  qtyFallback: [/^qty$/i, /quantity/i, /кол-?во/i, /количество/i],
   partNumber: [/part\s*number/i, /product\s*#?/i, /^pn$/i, /артикул/i, /номер/i],
   description: [/description/i, /описание/i, /наименован/i, /product\s*descript/i],
 };
+
+const isQtyServersHeader = (value) => /qty\s*servers?/i.test(value);
 
 const findHeader = (sheet, range) => {
   const maxRow = Math.min(range.e.r, range.s.r + 25);
@@ -36,6 +39,7 @@ const findHeader = (sheet, range) => {
     const match = {
       rowIndex: r + 1,
       qty: null,
+      qtyPriority: 0,
       partNumber: null,
       description: null,
       matchCount: 0,
@@ -48,9 +52,23 @@ const findHeader = (sheet, range) => {
         continue;
       }
 
-      if (!match.qty && HEADER_MATCHERS.qty.some((regex) => regex.test(value))) {
-        match.qty = c + 1;
-        match.matchCount += 1;
+      if (!isQtyServersHeader(value)) {
+        if (HEADER_MATCHERS.qtyPreferred.some((regex) => regex.test(value))) {
+          if (!match.qty) {
+            match.matchCount += 1;
+          }
+          match.qty = c + 1;
+          match.qtyPriority = 2;
+        } else if (
+          (!match.qty || match.qtyPriority !== 2) &&
+          HEADER_MATCHERS.qtyFallback.some((regex) => regex.test(value))
+        ) {
+          if (!match.qty) {
+            match.matchCount += 1;
+          }
+          match.qty = c + 1;
+          match.qtyPriority = 1;
+        }
       }
       if (!match.partNumber && HEADER_MATCHERS.partNumber.some((regex) => regex.test(value))) {
         match.partNumber = c + 1;
@@ -112,10 +130,13 @@ export const readCleanedSpecXlsx = (filePath, { deviceTypeDictionary } = {}) => 
       ? sheet[xlsx.utils.encode_cell({ r, c: header.description - 1 })]
       : null;
 
-    const qty = parseQty(qtyCell?.v);
+    let qty = parseQty(qtyCell?.v);
     const partNumber = normalizeString(partCell?.v) || undefined;
     const description = normalizeString(descCell?.v);
 
+    if (header?.qty && qty === null && (description || partNumber)) {
+      qty = 1;
+    }
     if (!description && !partNumber && qty === null) {
       continue;
     }
