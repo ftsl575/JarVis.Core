@@ -7,7 +7,8 @@
     "lint": "node scripts/lint.js",
     "test": "node --test",
     "canon:hpe": "node adapters/hpe/index.js samples/hpe --out out",
-    "docs:hpe:invoice": "node scripts/docs-hpe-invoice.js"
+    "docs:hpe:invoice": "node scripts/docs-hpe-invoice.js",
+    "docs:hpe:clean": "node scripts/docs-hpe-clean.js"
   },
   "dependencies": {
     "xlsx": "^0.18.5"

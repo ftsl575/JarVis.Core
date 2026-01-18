@@ -60,6 +60,23 @@ Troubleshooting:
 - If the file is not generated, run `npm test` first and confirm the cleaned spec headers match exactly.
 - The binary `.xlsx` templates are not committed; invoice generation works without committing them.
 
+## HPE cleaned spec batch generation
+
+Run the command:
+
+```bash
+npm run docs:hpe:clean
+```
+
+Behavior:
+
+- Inputs are read from `samples/hpe/` (non-recursive).
+- Outputs are written to `out/hpe_cleaned/` as `NAME_cleaned.xlsx`.
+- Excludes:
+  - files ending with `_cleaned.xlsx`
+  - files ending with `_invoice.xlsx`
+  - temporary Excel files like `~$*.xlsx`
+
 ## Repo hygiene / folder policy
 
 - `samples/hpe/`: raw vendor HPE input specs (`.xlsx`) only.
