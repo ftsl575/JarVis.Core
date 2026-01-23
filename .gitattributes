@@ -1,0 +1,25 @@
+# Text files
+*.md text eol=lf
+*.txt text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# Binary files
+*.xlsx -text linguist-generated
+*.xls -text linguist-generated
+*.png -text linguist-generated
+*.jpg -text linguist-generated
+*.jpeg -text linguist-generated
+*.pdf -text linguist-generated
+*.zip -text linguist-generated
+*.7z -text linguist-generated
+*.rar -text linguist-generated
+*.bin -text linguist-generated
+*.exe -text linguist-generated
+*.dll -text linguist-generated

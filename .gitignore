@@ -8,6 +8,18 @@ pnpm-debug.log*
 # Output
 out/
 logs/
+*.xlsx
+*.xls
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.zip
+*.7z
+*.rar
+*.bin
+*.exe
+*.dll
 *_cleaned.xlsx
 *_invoice.xlsx
 !samples/hpe/**
