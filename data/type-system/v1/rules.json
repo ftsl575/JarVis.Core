@@ -5,6 +5,34 @@
   },
   "keywords": [
     {
+      "pattern": "c13 - c14",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c13-c14",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c14-c13",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c19 to c20",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c19-c20",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "iec 60320",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "power cord",
+      "device_type": "Power Cord"
+    },
+    {
       "pattern": "bcm57412",
       "device_type": "Network Adapter"
     },
@@ -17,8 +45,20 @@
       "device_type": "PSU"
     },
     {
-      "pattern": "power cord",
-      "device_type": "Power Cord"
+      "pattern": "psu",
+      "device_type": "PSU"
+    },
+    {
+      "pattern": "flex slot power supply",
+      "device_type": "PSU"
+    },
+    {
+      "pattern": "hot plug power supply",
+      "device_type": "PSU"
+    },
+    {
+      "pattern": "hot-plug power supply",
+      "device_type": "PSU"
     },
     {
       "pattern": "oneview",
@@ -26,6 +66,22 @@
     },
     {
       "pattern": "raid controller",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "smart array",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "perc",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "megaraid",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "tri-mode",
       "device_type": "RAID Controller"
     },
     {
@@ -49,12 +105,360 @@
       "device_type": "CPU"
     },
     {
+      "pattern": "xeon",
+      "device_type": "CPU"
+    },
+    {
+      "pattern": "epyc",
+      "device_type": "CPU"
+    },
+    {
       "pattern": "memory",
       "device_type": "Memory"
     },
     {
       "pattern": "network adapter",
       "device_type": "Network Adapter"
+    },
+    {
+      "pattern": "dac cable",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "direct attach",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "aoc cable",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "twinax",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "breakout cable",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "patch cord",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "fiber cable",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "fibre cable",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "optical cable",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "dac",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "aoc",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "transceiver",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "optical module",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "optic module",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "qsfp-dd",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "qsfp dd",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "qsfp56",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "qsfp28",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "qsfp",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "osfp",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "sfp28",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "sfp+",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "sfp",
+      "device_type": "Transceiver"
+    },
+    {
+      "pattern": "network interface card",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "ethernet adapter",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "ocp nic",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "nic",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "25gbe",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "100gbe",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "fan",
+      "device_type": "Fan"
+    },
+    {
+      "pattern": "blower",
+      "device_type": "Fan"
+    },
+    {
+      "pattern": "heatsink",
+      "device_type": "Cooling Module"
+    },
+    {
+      "pattern": "heat sink",
+      "device_type": "Cooling Module"
+    },
+    {
+      "pattern": "cooling module",
+      "device_type": "Cooling Module"
+    },
+    {
+      "pattern": "radiator",
+      "device_type": "Cooling Module"
+    },
+    {
+      "pattern": "thermal module",
+      "device_type": "Cooling Module"
+    },
+    {
+      "pattern": "jbod",
+      "device_type": "Disk Enclosure"
+    },
+    {
+      "pattern": "disk shelf",
+      "device_type": "Disk Enclosure"
+    },
+    {
+      "pattern": "drive enclosure",
+      "device_type": "Disk Enclosure"
+    },
+    {
+      "pattern": "disk enclosure",
+      "device_type": "Disk Enclosure"
+    },
+    {
+      "pattern": "backplane",
+      "device_type": "Backplane"
+    },
+    {
+      "pattern": "midplane",
+      "device_type": "Backplane"
+    },
+    {
+      "pattern": "hba",
+      "device_type": "HBA"
+    },
+    {
+      "pattern": "fibre channel",
+      "device_type": "HBA"
+    },
+    {
+      "pattern": "fiber channel",
+      "device_type": "HBA"
+    },
+    {
+      "pattern": "16gb fc",
+      "device_type": "HBA"
+    },
+    {
+      "pattern": "32gb fc",
+      "device_type": "HBA"
+    },
+    {
+      "pattern": "network switch",
+      "device_type": "Network Switch"
+    },
+    {
+      "pattern": "ethernet switch",
+      "device_type": "Network Switch"
+    },
+    {
+      "pattern": "nexus switch",
+      "device_type": "Network Switch"
+    },
+    {
+      "pattern": "router",
+      "device_type": "Router"
+    },
+    {
+      "pattern": "firewall",
+      "device_type": "Firewall"
+    },
+    {
+      "pattern": "fabric interconnect",
+      "device_type": "Fabric Interconnect"
+    },
+    {
+      "pattern": "ucs fi",
+      "device_type": "Fabric Interconnect"
+    },
+    {
+      "pattern": "tape library",
+      "device_type": "Tape Library"
+    },
+    {
+      "pattern": "autoloader",
+      "device_type": "Tape Library"
+    },
+    {
+      "pattern": "lto",
+      "device_type": "Tape Library"
+    },
+    {
+      "pattern": "blade chassis",
+      "device_type": "Blade Chassis"
+    },
+    {
+      "pattern": "blade enclosure",
+      "device_type": "Blade Chassis"
+    },
+    {
+      "pattern": "c7000",
+      "device_type": "Blade Chassis"
+    },
+    {
+      "pattern": "synergy frame",
+      "device_type": "Blade Chassis"
+    },
+    {
+      "pattern": "m1000e",
+      "device_type": "Blade Chassis"
+    },
+    {
+      "pattern": "dimm",
+      "device_type": "RAM"
+    },
+    {
+      "pattern": "rdimm",
+      "device_type": "RAM"
+    },
+    {
+      "pattern": "lrdimm",
+      "device_type": "RAM"
+    },
+    {
+      "pattern": "ddr4",
+      "device_type": "RAM"
+    },
+    {
+      "pattern": "ddr5",
+      "device_type": "RAM"
+    },
+    {
+      "pattern": "gpu",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "nvidia",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "a100",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "h100",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "l40",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "rtx",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "battery",
+      "device_type": "Battery"
+    },
+    {
+      "pattern": "bbu",
+      "device_type": "Battery"
+    },
+    {
+      "pattern": "supercap",
+      "device_type": "Battery"
+    },
+    {
+      "pattern": "rack pdu",
+      "device_type": "PDU"
+    },
+    {
+      "pattern": "pdu",
+      "device_type": "PDU"
+    },
+    {
+      "pattern": "ups",
+      "device_type": "UPS"
+    },
+    {
+      "pattern": "uninterruptible",
+      "device_type": "UPS"
+    },
+    {
+      "pattern": "license",
+      "device_type": "License"
+    },
+    {
+      "pattern": "ltu",
+      "device_type": "License"
+    },
+    {
+      "pattern": "entitlement",
+      "device_type": "License"
+    },
+    {
+      "pattern": "subscription",
+      "device_type": "License"
+    },
+    {
+      "pattern": "support license",
+      "device_type": "License"
     }
   ]
 }
