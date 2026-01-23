@@ -165,6 +165,13 @@ test("rules v1 extended heuristics", () => {
       expected: "Network Interface Card",
     },
     {
+      name: "Intel E810-CQDA2 Ethernet 100Gb adapter",
+      input: {
+        description: "Intel E810-CQDA2 Ethernet 100Gb Adapter",
+      },
+      expected: "Network Interface Card",
+    },
+    {
       name: "OCP slot cable kit",
       input: {
         description: "CPU1 to Rear OCP SlotB x8 Cable Kit (P72203-B21)",
@@ -175,10 +182,24 @@ test("rules v1 extended heuristics", () => {
     {
       name: "OROC controller cable kit",
       input: {
+        description: "OROC Controller Cable Kit",
+      },
+      expected: "Cable",
+    },
+    {
+      name: "OROC controller cable kit with PN",
+      input: {
         description: "OROC 8SFF x2 Controller Cable Kit (P76454-B21)",
         partNumber: "P76454-B21",
       },
       expected: "Cable",
+    },
+    {
+      name: "High performance fan kit",
+      input: {
+        description: "High Performance Fan Kit",
+      },
+      expected: "Fan",
     },
     {
       name: "Performance heat sink kit",
@@ -189,8 +210,20 @@ test("rules v1 extended heuristics", () => {
       expected: "Cooling Module",
     },
     {
+      name: "Performance heat sink kit (no PN)",
+      input: {
+        description: "Performance Heat Sink Kit",
+      },
+      expected: "Cooling Module",
+    },
+    {
       name: "Generic upgrade kit stays unclear",
       input: { description: "Upgrade Kit" },
+      expected: "Unclear",
+    },
+    {
+      name: "Easy install rail kit stays unclear",
+      input: { description: "Easy Install Rail Kit" },
       expected: "Unclear",
     },
   ];
