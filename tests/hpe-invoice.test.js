@@ -14,6 +14,11 @@ const createWorkbook = (rows, sheetName = "Sheet1") => {
   return workbook;
 };
 
+const writeItemsJsonl = async (filePath, records) => {
+  const lines = records.map((record) => JSON.stringify(record));
+  await fs.writeFile(filePath, `${lines.join("\n")}\n`, "utf8");
+};
+
 const findHeaderRow = (sheet) => {
   const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
   if (!range) {
@@ -115,6 +120,7 @@ test("generates invoice with expected line count", async () => {
     const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
     const templatePath = path.join(tempDir, "template.xlsx");
     const outPath = path.join(tempDir, "invoice.xlsx");
+    const itemsLayerPath = path.join(tempDir, "items.jsonl");
 
     const cleanedRows = [
       [
@@ -128,6 +134,9 @@ test("generates invoice with expected line count", async () => {
       ],
       [1, "ABC123", "Widget", "Device", "Устройство", 2, 1],
       [2, "DEF456", "Gadget", "Device", "Устройство", 1, 1],
+      [3, "GHI789", "Thingamajig", "Device", "Устройство", 1, 1],
+      [4, "JKL000", "EmptyType", "Device", "Устройство", 1, 1],
+      [5, "", "No Part Number", "Device", "Устройство", 1, 1],
     ];
     const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
     xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
@@ -142,9 +151,31 @@ test("generates invoice with expected line count", async () => {
     const templateWorkbook = createWorkbook(templateRows, "Invoice");
     xlsx.writeFile(templateWorkbook, templatePath);
 
+    await writeItemsJsonl(itemsLayerPath, [
+      {
+        product_number: "ABC123",
+        description: "Widget",
+        device_type: "Compute",
+      },
+      {
+        product_number: "DEF456",
+        description: "Gadget",
+        device_type: "Storage",
+      },
+      {
+        product_number: "JKL000",
+        description: "EmptyType",
+        device_type: "",
+      },
+      {
+        product_number: "DUP-001",
+        description: "Duplicate",
+        device_type: "Network",
+      },
+    ]);
+
     const items = readCleanedSpecXlsx(cleanedSpecPath);
-    items[0].deviceType = "Compute";
-    await generateInvoiceXlsx({ templatePath, items, outPath });
+    await generateInvoiceXlsx({ templatePath, items, outPath, itemsLayerPath });
 
     const outputWorkbook = xlsx.readFile(outPath);
     assert.equal(outputWorkbook.SheetNames.length, 1);
@@ -168,8 +199,14 @@ test("generates invoice with expected line count", async () => {
 
     const firstItemRow = findRowWithValue(outputSheet, "Widget");
     const secondItemRow = findRowWithValue(outputSheet, "Gadget");
+    const thirdItemRow = findRowWithValue(outputSheet, "Thingamajig");
+    const fourthItemRow = findRowWithValue(outputSheet, "EmptyType");
+    const fifthItemRow = findRowWithValue(outputSheet, "No Part Number");
     assert.ok(firstItemRow);
     assert.ok(secondItemRow);
+    assert.ok(thirdItemRow);
+    assert.ok(fourthItemRow);
+    assert.ok(fifthItemRow);
 
     const firstDeviceTypeCell = outputSheet[
       xlsx.utils.encode_cell({ r: firstItemRow - 1, c: header.deviceTypeCol - 1 })
@@ -177,8 +214,88 @@ test("generates invoice with expected line count", async () => {
     const secondDeviceTypeCell = outputSheet[
       xlsx.utils.encode_cell({ r: secondItemRow - 1, c: header.deviceTypeCol - 1 })
     ];
+    const thirdDeviceTypeCell = outputSheet[
+      xlsx.utils.encode_cell({ r: thirdItemRow - 1, c: header.deviceTypeCol - 1 })
+    ];
+    const fourthDeviceTypeCell = outputSheet[
+      xlsx.utils.encode_cell({ r: fourthItemRow - 1, c: header.deviceTypeCol - 1 })
+    ];
+    const fifthDeviceTypeCell = outputSheet[
+      xlsx.utils.encode_cell({ r: fifthItemRow - 1, c: header.deviceTypeCol - 1 })
+    ];
     assert.equal(firstDeviceTypeCell?.v, "Compute");
-    assert.equal(secondDeviceTypeCell?.v, "Unclear");
+    assert.equal(secondDeviceTypeCell?.v, "Storage");
+    assert.equal(thirdDeviceTypeCell?.v, "Unclear");
+    assert.equal(fourthDeviceTypeCell?.v, "Unclear");
+    assert.equal(fifthDeviceTypeCell?.v, "Unclear");
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("prefers description match when part number repeats in items layer", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-desc-match-"));
+
+  try {
+    const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+    const itemsLayerPath = path.join(tempDir, "items.jsonl");
+
+    const cleanedRows = [
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "DUP-002", "Alpha Node", "Device", "Устройство", 1, 1],
+    ];
+    const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
+    xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
+
+    const templateRows = [
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "#", "Part Number", "Description", "Device Type", "Qty components"],
+      ["", "", "", "", "", ""],
+    ];
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    await writeItemsJsonl(itemsLayerPath, [
+      {
+        product_number: "DUP-002",
+        description: "Beta Shelf",
+        device_type: "Storage",
+      },
+      {
+        product_number: "DUP-002",
+        description: "Alpha Node",
+        device_type: "Compute",
+      },
+    ]);
+
+    const items = readCleanedSpecXlsx(cleanedSpecPath);
+    await generateInvoiceXlsx({ templatePath, items, outPath, itemsLayerPath });
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+    const header = findHeaderRow(outputSheet);
+    assert.ok(header);
+    assert.ok(header.deviceTypeCol);
+
+    const itemRow = findRowWithValue(outputSheet, "Alpha Node");
+    assert.ok(itemRow);
+
+    const deviceTypeCell = outputSheet[
+      xlsx.utils.encode_cell({ r: itemRow - 1, c: header.deviceTypeCol - 1 })
+    ];
+    assert.equal(deviceTypeCell?.v, "Compute");
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

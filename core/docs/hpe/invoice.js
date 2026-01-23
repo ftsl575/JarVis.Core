@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import xlsx from "xlsx";
 
 const normalizeString = (value) => {
@@ -13,6 +15,11 @@ const normalizeString = (value) => {
 const normalizeHeaderValue = (value) => normalizeString(value).replace(/\s+/g, " ");
 
 const normalizeHeaderKey = (value) => normalizeHeaderValue(value).toLowerCase();
+
+const normalizeLookupKey = (value) => normalizeString(value).toLowerCase();
+
+const normalizeDescriptionValue = (value) =>
+  normalizeString(value).replace(/\s+/g, " ").toLowerCase();
 
 const HEADER_LABELS = {
   lineNo: "#",
@@ -31,6 +38,72 @@ const REQUIRED_HEADERS = [
 const OPTIONAL_ANCHORS = ["[Terms & Conditions:]", "[Bank Account]"];
 
 const DEFAULT_HEADER_ROW = 12;
+
+const readItemsLayerJsonl = (filePath) => {
+  const content = fs.readFileSync(filePath, "utf8");
+  return content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+};
+
+const resolveItemsLayer = ({ itemsLayer, itemsLayerPath, outPath }) => {
+  if (Array.isArray(itemsLayer)) {
+    return itemsLayer;
+  }
+
+  let candidatePath = itemsLayerPath;
+  if (!candidatePath && outPath) {
+    candidatePath = path.join(path.dirname(outPath), "items.jsonl");
+  }
+
+  if (candidatePath && fs.existsSync(candidatePath)) {
+    return readItemsLayerJsonl(candidatePath);
+  }
+
+  return [];
+};
+
+const buildDeviceTypeLookup = (itemsLayer) => {
+  const lookup = new Map();
+  itemsLayer.forEach((record) => {
+    const partNumber = normalizeLookupKey(
+      record?.product_number ?? record?.part_number ?? record?.productNumber ?? record?.partNumber
+    );
+    if (!partNumber) {
+      return;
+    }
+    const description = normalizeDescriptionValue(record?.description);
+    const deviceType = normalizeString(record?.device_type ?? record?.deviceType);
+    const entries = lookup.get(partNumber) || [];
+    entries.push({ description, deviceType });
+    lookup.set(partNumber, entries);
+  });
+  return lookup;
+};
+
+const resolveDeviceType = (lookup, partNumber, description) => {
+  const normalizedPartNumber = normalizeLookupKey(partNumber);
+  if (!normalizedPartNumber) {
+    return "";
+  }
+  const matches = lookup.get(normalizedPartNumber);
+  if (!matches || matches.length === 0) {
+    return "";
+  }
+  if (matches.length === 1) {
+    return matches[0].deviceType;
+  }
+  const normalizedDescription = normalizeDescriptionValue(description);
+  if (normalizedDescription) {
+    const exactMatch = matches.find((match) => match.description === normalizedDescription);
+    if (exactMatch) {
+      return exactMatch.deviceType;
+    }
+  }
+  return matches[0].deviceType;
+};
 
 const updateSheetRange = (sheet, row, col) => {
   const cellPosition = { r: row - 1, c: col - 1 };
@@ -408,7 +481,13 @@ const placeBlock = (sheet, block, targetRow) => {
   }
 };
 
-export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
+export const generateInvoiceXlsx = async ({
+  templatePath,
+  items,
+  outPath,
+  itemsLayer,
+  itemsLayerPath,
+}) => {
   const workbook = xlsx.readFile(templatePath, { cellStyles: true });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
@@ -422,6 +501,9 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
 
   const { missingAnchors } = validateInvoiceTemplate(sheet);
   const { headerRow, colIndexMap } = ensureInvoiceTableHeader(sheet);
+
+  const itemsLayerRecords = resolveItemsLayer({ itemsLayer, itemsLayerPath, outPath });
+  const deviceTypeLookup = buildDeviceTypeLookup(itemsLayerRecords);
 
   const startRow = headerRow + 1;
   const delta = Math.max(0, items.length - 1);
@@ -474,7 +556,8 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
       setCellValue(sheet, rowIndex, colIndexMap.qty, item.qty, templateCells.qty);
     }
     if (colIndexMap.deviceType) {
-      const deviceTypeValue = normalizeString(item.deviceType);
+      const deviceTypeFromItems = resolveDeviceType(deviceTypeLookup, item.partNumber, item.description);
+      const deviceTypeValue = normalizeString(deviceTypeFromItems || item.deviceType);
       setCellValue(
         sheet,
         rowIndex,
