@@ -1,0 +1,60 @@
+{
+  "pn_exact": {
+    "P19777-B21": "Network Adapter",
+    "865414-B21": "PSU"
+  },
+  "keywords": [
+    {
+      "pattern": "bcm57412",
+      "device_type": "Network Adapter"
+    },
+    {
+      "pattern": "ocp3 adapter",
+      "device_type": "Network Adapter"
+    },
+    {
+      "pattern": "power supply",
+      "device_type": "PSU"
+    },
+    {
+      "pattern": "power cord",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "oneview",
+      "device_type": "Software"
+    },
+    {
+      "pattern": "raid controller",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "nvme",
+      "device_type": "NVMe"
+    },
+    {
+      "pattern": "ssd",
+      "device_type": "SSD"
+    },
+    {
+      "pattern": "hdd",
+      "device_type": "HDD"
+    },
+    {
+      "pattern": "hard drive",
+      "device_type": "HDD"
+    },
+    {
+      "pattern": "processor",
+      "device_type": "CPU"
+    },
+    {
+      "pattern": "memory",
+      "device_type": "Memory"
+    },
+    {
+      "pattern": "network adapter",
+      "device_type": "Network Adapter"
+    }
+  ]
+}
