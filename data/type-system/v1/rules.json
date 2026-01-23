@@ -65,6 +65,10 @@
       "device_type": "Software"
     },
     {
+      "pattern": "mr216i-o",
+      "device_type": "RAID Controller"
+    },
+    {
       "pattern": "raid controller",
       "device_type": "RAID Controller"
     },
@@ -165,6 +169,14 @@
       "device_type": "Cable"
     },
     {
+      "pattern": "cable kit",
+      "device_type": "Cable"
+    },
+    {
+      "pattern": "e810-cqda2 ethernet 100gb 2-port qsfp28 adapter",
+      "device_type": "Network Interface Card"
+    },
+    {
       "pattern": "transceiver",
       "device_type": "Transceiver"
     },
@@ -250,6 +262,10 @@
     },
     {
       "pattern": "heat sink",
+      "device_type": "Cooling Module"
+    },
+    {
+      "pattern": "heat sink kit",
       "device_type": "Cooling Module"
     },
     {

@@ -151,6 +151,44 @@ test("rules v1 extended heuristics", () => {
       expected: "License",
     },
     {
+      name: "MR216i-o storage controller",
+      input: {
+        description: "HPE MR216i-o Gen11 x16 Lanes without Cache OCP SPDM Storage Controller",
+      },
+      expected: "RAID Controller",
+    },
+    {
+      name: "Intel E810-CQDA2 Ethernet adapter",
+      input: {
+        description: "Intel E810-CQDA2 Ethernet 100Gb 2-port QSFP28 Adapter",
+      },
+      expected: "Network Interface Card",
+    },
+    {
+      name: "OCP slot cable kit",
+      input: {
+        description: "CPU1 to Rear OCP SlotB x8 Cable Kit (P72203-B21)",
+        partNumber: "P72203-B21",
+      },
+      expected: "Cable",
+    },
+    {
+      name: "OROC controller cable kit",
+      input: {
+        description: "OROC 8SFF x2 Controller Cable Kit (P76454-B21)",
+        partNumber: "P76454-B21",
+      },
+      expected: "Cable",
+    },
+    {
+      name: "Performance heat sink kit",
+      input: {
+        description: "Performance Heat Sink Kit (P74792-B21)",
+        partNumber: "P74792-B21",
+      },
+      expected: "Cooling Module",
+    },
+    {
       name: "Generic upgrade kit stays unclear",
       input: { description: "Upgrade Kit" },
       expected: "Unclear",
