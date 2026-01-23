@@ -23,6 +23,7 @@ const findHeaderRow = (sheet) => {
   for (let r = range.s.r; r <= range.e.r; r += 1) {
     let partNumberCol;
     let descriptionCol;
+    let deviceTypeCol;
     let qtyCol;
     for (let c = range.s.c; c <= range.e.c; c += 1) {
       const cell = sheet[xlsx.utils.encode_cell({ r, c })];
@@ -32,12 +33,15 @@ const findHeaderRow = (sheet) => {
       if (cell?.v === "Description") {
         descriptionCol = c + 1;
       }
+      if (cell?.v === "Device Type") {
+        deviceTypeCol = c + 1;
+      }
       if (cell?.v === "Qty components") {
         qtyCol = c + 1;
       }
     }
     if (partNumberCol && descriptionCol && qtyCol) {
-      return { rowIndex: r + 1, descriptionCol };
+      return { rowIndex: r + 1, descriptionCol, deviceTypeCol };
     }
   }
   return null;
@@ -139,6 +143,7 @@ test("generates invoice with expected line count", async () => {
     xlsx.writeFile(templateWorkbook, templatePath);
 
     const items = readCleanedSpecXlsx(cleanedSpecPath);
+    items[0].deviceType = "Compute";
     await generateInvoiceXlsx({ templatePath, items, outPath });
 
     const outputWorkbook = xlsx.readFile(outPath);
@@ -147,6 +152,7 @@ test("generates invoice with expected line count", async () => {
     const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
     const header = findHeaderRow(outputSheet);
     assert.ok(header);
+    assert.ok(header.deviceTypeCol);
 
     let lineCount = 0;
     for (let i = 1; i <= items.length; i += 1) {
@@ -159,6 +165,20 @@ test("generates invoice with expected line count", async () => {
     }
 
     assert.equal(lineCount, items.length);
+
+    const firstItemRow = findRowWithValue(outputSheet, "Widget");
+    const secondItemRow = findRowWithValue(outputSheet, "Gadget");
+    assert.ok(firstItemRow);
+    assert.ok(secondItemRow);
+
+    const firstDeviceTypeCell = outputSheet[
+      xlsx.utils.encode_cell({ r: firstItemRow - 1, c: header.deviceTypeCol - 1 })
+    ];
+    const secondDeviceTypeCell = outputSheet[
+      xlsx.utils.encode_cell({ r: secondItemRow - 1, c: header.deviceTypeCol - 1 })
+    ];
+    assert.equal(firstDeviceTypeCell?.v, "Compute");
+    assert.equal(secondDeviceTypeCell?.v, "Unclear");
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
