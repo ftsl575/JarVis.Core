@@ -1,5 +1,6 @@
 import path from "node:path";
 import xlsx from "xlsx";
+import { classifyDeviceType } from "../../core/type-system/v1/index.js";
 
 const normalizeCellValue = (value) => {
   if (value === null || value === undefined) {
@@ -273,6 +274,11 @@ export const parseHpeWorkbook = (inputPath, { inputDir } = {}) => {
     }
 
     if (line.line_type === "item") {
+      const deviceType = classifyDeviceType({
+        description: line.parsed.description,
+        vendor: line.source.vendor,
+        partNumber: line.parsed.product_number,
+      });
       result.itemsExported += 1;
       result.itemRecords.push({
         id: line.id,
@@ -280,6 +286,7 @@ export const parseHpeWorkbook = (inputPath, { inputDir } = {}) => {
         qty: line.parsed.qty,
         product_number: line.parsed.product_number,
         description: line.parsed.description,
+        device_type: deviceType.device_type,
         raw_ref: {
           file: line.source.file,
           sheet: line.source.sheet,
