@@ -474,7 +474,14 @@ export const generateInvoiceXlsx = async ({ templatePath, items, outPath }) => {
       setCellValue(sheet, rowIndex, colIndexMap.qty, item.qty, templateCells.qty);
     }
     if (colIndexMap.deviceType) {
-      setCellValue(sheet, rowIndex, colIndexMap.deviceType, item.deviceType || "", templateCells.deviceType);
+      const deviceTypeValue = normalizeString(item.deviceType);
+      setCellValue(
+        sheet,
+        rowIndex,
+        colIndexMap.deviceType,
+        deviceTypeValue || "Unclear",
+        templateCells.deviceType
+      );
     }
   }
 
