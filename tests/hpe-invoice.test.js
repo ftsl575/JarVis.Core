@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 import xlsx from "xlsx";
 import { readCleanedSpecXlsx } from "../core/docs/hpe/read-cleaned-spec.js";
 import { generateInvoiceXlsx, validateInvoiceTemplate } from "../core/docs/hpe/invoice.js";
+
+const execFileAsync = promisify(execFile);
 
 const createWorkbook = (rows, sheetName = "Sheet1") => {
   const workbook = xlsx.utils.book_new();
@@ -228,6 +232,80 @@ test("generates invoice with expected line count", async () => {
     assert.equal(thirdDeviceTypeCell?.v, "Unclear");
     assert.equal(fourthDeviceTypeCell?.v, "Unclear");
     assert.equal(fifthDeviceTypeCell?.v, "Unclear");
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("docs-hpe-invoice applies type-system classification to device type column", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-typesystem-"));
+
+  try {
+    const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+
+    const cleanedRows = [
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "OCP3-001", "OCP3 adapter", "Device", "Устройство", 1, 1],
+      [2, "MR216I-001", "MR216i controller", "Device", "Устройство", 1, 1],
+      [3, "CORD-001", "C13-C14 Power Cord", "Device", "Устройство", 1, 1],
+      [4, "PSU-001", "Power Supply 500W", "Device", "Устройство", 1, 1],
+      [5, "RAIL-001", "Rail Kit", "Device", "Устройство", 1, 1],
+    ];
+    const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
+    xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
+
+    const templateRows = [
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "#", "Part Number", "Description", "Device Type", "Qty components"],
+      ["", "", "", "", "", ""],
+    ];
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    await execFileAsync(process.execPath, [
+      "scripts/docs-hpe-invoice.js",
+      "--spec",
+      cleanedSpecPath,
+      "--template",
+      templatePath,
+      "--out",
+      outPath,
+    ]);
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+    const header = findHeaderRow(outputSheet);
+    assert.ok(header);
+    assert.ok(header.deviceTypeCol);
+
+    const expectedDeviceTypes = new Map([
+      ["OCP3 adapter", "Network Adapter"],
+      ["MR216i controller", "RAID Controller"],
+      ["C13-C14 Power Cord", "Power Cord"],
+      ["Power Supply 500W", "PSU"],
+      ["Rail Kit", "Unclear"],
+    ]);
+
+    for (const [description, expectedType] of expectedDeviceTypes.entries()) {
+      const rowIndex = findRowWithValue(outputSheet, description);
+      assert.ok(rowIndex, `Missing row for ${description}`);
+      const deviceTypeCell = outputSheet[
+        xlsx.utils.encode_cell({ r: rowIndex - 1, c: header.deviceTypeCol - 1 })
+      ];
+      assert.equal(deviceTypeCell?.v, expectedType);
+    }
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }

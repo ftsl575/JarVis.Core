@@ -6,6 +6,7 @@ import xlsx from "xlsx";
 import { generateInvoiceXlsx } from "../core/docs/hpe/invoice.js";
 import { readCleanedSpecXlsx } from "../core/docs/hpe/read-cleaned-spec.js";
 import { loadDeviceTypeDictionary } from "../core/docs/hpe/device-type-dict.js";
+import { classifyDeviceType } from "../core/type-system/v1/index.js";
 
 const DEFAULT_TEMPLATE_PATH = "assets/templates/Шаблон инвойса.xlsx";
 const TEMPLATE_ENV_VAR = "JARVIS_TEMPLATE_INVOICE";
@@ -134,8 +135,20 @@ const main = async () => {
     process.exit(1);
   }
 
+  const classifiedItems = items.map((item) => {
+    const classification = classifyDeviceType({
+      description: item.description,
+      partNumber: item.partNumber,
+      vendor: item.vendor,
+    });
+    return {
+      ...item,
+      deviceType: classification.device_type,
+    };
+  });
+
   await ensureDir(outPath);
-  const result = await generateInvoiceXlsx({ templatePath, items, outPath });
+  const result = await generateInvoiceXlsx({ templatePath, items: classifiedItems, outPath });
   if (result?.missingAnchors?.length) {
     console.warn(`Invoice template is missing recommended anchors: ${result.missingAnchors.join(", ")}`);
   }
