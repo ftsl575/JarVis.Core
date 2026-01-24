@@ -73,20 +73,24 @@
       "device_type": "Cable"
     },
     {
+      "pattern": "easy install rail 3 kit",
+      "device_type": "Rail Kit"
+    },
+    {
       "pattern": "easy install rail kit",
-      "device_type": "Blade Chassis"
+      "device_type": "Rail Kit"
     },
     {
       "pattern": "rail kit",
-      "device_type": "Blade Chassis"
+      "device_type": "Rail Kit"
     },
     {
       "pattern": "drive cage",
-      "device_type": "Disk Enclosure"
+      "device_type": "Drive Cage"
     },
     {
       "pattern": "drivecage",
-      "device_type": "Disk Enclosure"
+      "device_type": "Drive Cage"
     },
     {
       "pattern": "cage kit",
@@ -213,19 +217,31 @@
       "device_type": "Cable"
     },
     {
+      "pattern": "e810-cqda2 ethernet 100gb 2-port qsfp28 adapter",
+      "device_type": "Network Adapter"
+    },
+    {
+      "pattern": "intel e810-cqda2 ethernet 100gb 2-port qsfp28 adapter for hpe",
+      "device_type": "Network Adapter"
+    },
+    {
+      "pattern": "e810 ethernet adapter",
+      "device_type": "Network Adapter"
+    },
+    {
+      "pattern": "intel e810",
+      "device_type": "Network Adapter"
+    },
+    {
+      "pattern": "broadcom ethernet adapter",
+      "device_type": "Network Adapter"
+    },
+    {
       "pattern": "ethernet 100gb qsfp28 adapter",
       "device_type": "Network Interface Card"
     },
     {
       "pattern": "ethernet qsfp28 adapter",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "e810-cqda2 ethernet 100gb 2-port qsfp28 adapter",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "intel e810-cqda2 ethernet 100gb 2-port qsfp28 adapter for hpe",
       "device_type": "Network Interface Card"
     },
     {
@@ -242,18 +258,6 @@
     },
     {
       "pattern": "ethernet nic",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "e810 ethernet adapter",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "intel e810",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "broadcom ethernet adapter",
       "device_type": "Network Interface Card"
     },
     {
@@ -461,19 +465,27 @@
       "device_type": "Tape Library"
     },
     {
+      "pattern": "configure-to-order server",
+      "device_type": "Server"
+    },
+    {
+      "pattern": "configure to order server",
+      "device_type": "Server"
+    },
+    {
+      "pattern": "cto server",
+      "device_type": "Server"
+    },
+    {
+      "pattern": "cto svr",
+      "device_type": "Server"
+    },
+    {
       "pattern": "blade chassis",
       "device_type": "Blade Chassis"
     },
     {
       "pattern": "blade enclosure",
-      "device_type": "Blade Chassis"
-    },
-    {
-      "pattern": "cto server",
-      "device_type": "Blade Chassis"
-    },
-    {
-      "pattern": "cto svr",
       "device_type": "Blade Chassis"
     },
     {
