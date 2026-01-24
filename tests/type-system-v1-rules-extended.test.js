@@ -207,35 +207,35 @@ test("rules v1 extended heuristics", () => {
       input: {
         description: "Intel E810-CQDA2 Ethernet 100Gb 2-port QSFP28 Adapter",
       },
-      expected: "Network Interface Card",
+      expected: "Network Adapter",
     },
     {
       name: "Intel E810-CQDA2 Ethernet adapter for HPE",
       input: {
         description: "Intel E810-CQDA2 Ethernet 100Gb 2-port QSFP28 Adapter for HPE",
       },
-      expected: "Network Interface Card",
+      expected: "Network Adapter",
     },
     {
       name: "Intel E810-CQDA2 Ethernet QSFP28 adapter",
       input: {
         description: "Intel E810-CQDA2 Ethernet 100Gb QSFP28 Adapter",
       },
-      expected: "Network Interface Card",
+      expected: "Network Adapter",
     },
     {
       name: "Intel E810-CQDA2 Ethernet 100Gb adapter",
       input: {
         description: "Intel E810-CQDA2 Ethernet 100Gb Adapter",
       },
-      expected: "Network Interface Card",
+      expected: "Network Adapter",
     },
     {
       name: "Broadcom Ethernet adapter",
       input: {
         description: "Broadcom Ethernet Adapter",
       },
-      expected: "Network Interface Card",
+      expected: "Network Adapter",
     },
     {
       name: "OCP slot cable kit",
@@ -287,7 +287,7 @@ test("rules v1 extended heuristics", () => {
       input: {
         description: "Tri-Mode Drive Cage Kit",
       },
-      expected: "Disk Enclosure",
+      expected: "Drive Cage",
     },
     {
       name: "Generic upgrade kit stays unclear",
@@ -295,19 +295,34 @@ test("rules v1 extended heuristics", () => {
       expected: "Unclear",
     },
     {
+      name: "Easy install rail 3 kit",
+      input: { description: "Easy Install Rail 3 Kit" },
+      expected: "Rail Kit",
+    },
+    {
       name: "Easy install rail kit",
       input: { description: "Easy Install Rail Kit" },
-      expected: "Blade Chassis",
+      expected: "Rail Kit",
     },
     {
       name: "CTO server",
       input: { description: "CTO Server" },
-      expected: "Blade Chassis",
+      expected: "Server",
     },
     {
       name: "CTO svr",
       input: { description: "CTO Svr Gen11" },
-      expected: "Blade Chassis",
+      expected: "Server",
+    },
+    {
+      name: "CTO server model string",
+      input: { description: "HPE DL380 Gen12 SFF NC CTO Svr" },
+      expected: "Server",
+    },
+    {
+      name: "Configure-to-order server",
+      input: { description: "Configure-to-order Server" },
+      expected: "Server",
     },
     {
       name: "Enablement kit stays unclear",
@@ -325,4 +340,9 @@ test("rules v1 extended heuristics", () => {
     const result = classifyByRules(testCase.input);
     assert.equal(result.device_type, testCase.expected, testCase.name);
   }
+});
+
+test("rules v1 extended heuristics avoids blade chassis for CTO servers", () => {
+  const result = classifyByRules({ description: "HPE DL380 Gen12 SFF NC CTO Svr" });
+  assert.notEqual(result.device_type, "Blade Chassis");
 });
