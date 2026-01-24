@@ -26,11 +26,95 @@ test("classifies device types with deterministic rules", () => {
       expected: "Power Cord",
     },
     {
+      name: "C13/C14 power cord",
+      input: {
+        description: "C13/C14 2m Power Cord",
+      },
+      expected: "Power Cord",
+    },
+    {
+      name: "Factory integrated power cord remains unclear",
+      input: {
+        description: "Factory Integrated C13/C14 Power Cord",
+      },
+      expected: "Unclear",
+    },
+    {
       name: "HPE OneView software",
       input: {
         description: "HPE OneView for ProLiant DL Server LTU",
       },
       expected: "Software",
+    },
+    {
+      name: "Compute cloud management enablement software",
+      input: {
+        description: "Compute Cloud Management Server FIO Enablement",
+      },
+      expected: "Software",
+    },
+    {
+      name: "Factory integrated management enablement remains unclear",
+      input: {
+        description: "Factory Integrated Compute Cloud Management Server FIO Enablement",
+      },
+      expected: "Unclear",
+    },
+    {
+      name: "Ball bearing rail kit",
+      input: {
+        description: "Ball Bearing Rail Kit",
+      },
+      expected: "Rail Kit",
+    },
+    {
+      name: "Factory integrated rail kit remains unclear",
+      input: {
+        description: "Factory Integrated Ball Bearing Rail Kit",
+      },
+      expected: "Unclear",
+    },
+    {
+      name: "Configuration tracking",
+      input: {
+        description: "Configuration Tracking",
+      },
+      expected: "Configuration",
+    },
+    {
+      name: "Factory integrated configuration tracking remains unclear",
+      input: {
+        description: "Factory Integrated Configuration Tracking",
+      },
+      expected: "Unclear",
+    },
+    {
+      name: "Air baffle cooling module",
+      input: {
+        description: "Air Baffle",
+      },
+      expected: "Cooling Module",
+    },
+    {
+      name: "Factory integrated air baffle remains unclear",
+      input: {
+        description: "Factory Integrated Air Baffle",
+      },
+      expected: "Unclear",
+    },
+    {
+      name: "Bezel kit",
+      input: {
+        description: "Bezel Kit",
+      },
+      expected: "Bezel",
+    },
+    {
+      name: "Factory integrated bezel kit remains unclear",
+      input: {
+        description: "Factory Integrated Bezel Kit",
+      },
+      expected: "Unclear",
     },
     {
       name: "RAID controller",

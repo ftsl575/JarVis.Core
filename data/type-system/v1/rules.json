@@ -5,11 +5,23 @@
   },
   "keywords": [
     {
+      "pattern": "factory integrated",
+      "device_type": "Unclear"
+    },
+    {
       "pattern": "c13 - c14",
       "device_type": "Power Cord"
     },
     {
       "pattern": "c13-c14",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c13/c14",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c13 / c14",
       "device_type": "Power Cord"
     },
     {
@@ -22,6 +34,14 @@
     },
     {
       "pattern": "c19-c20",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c19/c20",
+      "device_type": "Power Cord"
+    },
+    {
+      "pattern": "c19 / c20",
       "device_type": "Power Cord"
     },
     {
@@ -65,6 +85,10 @@
       "device_type": "Software"
     },
     {
+      "pattern": "compute cloud management server fio enablement",
+      "device_type": "Software"
+    },
+    {
       "pattern": "localization fio kit",
       "device_type": "Software"
     },
@@ -81,8 +105,16 @@
       "device_type": "Rail Kit"
     },
     {
+      "pattern": "ball bearing rail",
+      "device_type": "Rail Kit"
+    },
+    {
       "pattern": "rail kit",
       "device_type": "Rail Kit"
+    },
+    {
+      "pattern": "bezel kit",
+      "device_type": "Bezel"
     },
     {
       "pattern": "drive cage",
@@ -349,6 +381,10 @@
       "device_type": "Fan"
     },
     {
+      "pattern": "air baffle",
+      "device_type": "Cooling Module"
+    },
+    {
       "pattern": "heatsink kit",
       "device_type": "Cooling Module"
     },
@@ -607,6 +643,14 @@
     {
       "pattern": "support license",
       "device_type": "License"
+    },
+    {
+      "pattern": "configuration tracking",
+      "device_type": "Configuration"
+    },
+    {
+      "pattern": "configuration enablement",
+      "device_type": "Configuration"
     },
     {
       "pattern": "inlet ambient operating temperature configuration tracking",
