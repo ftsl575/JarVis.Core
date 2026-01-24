@@ -178,6 +178,14 @@ test("rules v1 extended heuristics", () => {
       expected: "RAID Controller",
     },
     {
+      name: "MR216i-o storage controller with extended description",
+      input: {
+        description:
+          "HPE MR216i-o Gen11 x16 Lanes without Cache OCP SPDM Storage Controller",
+      },
+      expected: "RAID Controller",
+    },
+    {
       name: "MR408i controller",
       input: {
         description: "MR408i Controller",
@@ -188,6 +196,13 @@ test("rules v1 extended heuristics", () => {
       name: "Intel E810-CQDA2 Ethernet adapter",
       input: {
         description: "Intel E810-CQDA2 Ethernet 100Gb 2-port QSFP28 Adapter",
+      },
+      expected: "Network Interface Card",
+    },
+    {
+      name: "Intel E810-CQDA2 Ethernet QSFP28 adapter",
+      input: {
+        description: "Intel E810-CQDA2 Ethernet 100Gb QSFP28 Adapter",
       },
       expected: "Network Interface Card",
     },
@@ -249,6 +264,13 @@ test("rules v1 extended heuristics", () => {
         description: "Performance Heat Sink Kit",
       },
       expected: "Cooling Module",
+    },
+    {
+      name: "Tri-Mode drive cage kit stays unclear",
+      input: {
+        description: "Tri-Mode Drive Cage Kit",
+      },
+      expected: "Unclear",
     },
     {
       name: "Generic upgrade kit stays unclear",
