@@ -84,6 +84,153 @@ const createDefaultCleanedSpec = async () => {
   return cleanedSpecPath;
 };
 
+const normalizeCellValue = (value) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  return String(value).trim();
+};
+
+const normalizeHeaderKey = (value) =>
+  normalizeCellValue(value)
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
+const findItemsHeaderRow = (sheet) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return null;
+  }
+
+  const required = new Set([
+    normalizeHeaderKey("Part Number"),
+    normalizeHeaderKey("Description"),
+    normalizeHeaderKey("Qty components"),
+  ]);
+
+  const maxRow = Math.min(range.e.r, range.s.r + 40);
+  for (let r = range.s.r; r <= maxRow; r += 1) {
+    const found = new Set();
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      const value = normalizeHeaderKey(cell?.v);
+      if (required.has(value)) {
+        found.add(value);
+      }
+    }
+    if (found.size === required.size) {
+      return r + 1;
+    }
+  }
+
+  return null;
+};
+
+const findCellByValue = (sheet, targetValue) => {
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return null;
+  }
+
+  const target = normalizeCellValue(targetValue);
+  for (let r = range.s.r; r <= range.e.r; r += 1) {
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const cell = sheet[xlsx.utils.encode_cell({ r, c })];
+      if (normalizeCellValue(cell?.v) === target) {
+        return { rowIndex: r + 1, colIndex: c + 1 };
+      }
+    }
+  }
+
+  return null;
+};
+
+const clearInvoiceItemRows = (templatePath) => {
+  const workbook = xlsx.readFile(templatePath, { cellStyles: true });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) {
+    return templatePath;
+  }
+
+  const sheet = workbook.Sheets[sheetName];
+  if (!sheet) {
+    return templatePath;
+  }
+
+  const headerRow = findItemsHeaderRow(sheet);
+  if (!headerRow) {
+    return templatePath;
+  }
+
+  const range = sheet["!ref"] ? xlsx.utils.decode_range(sheet["!ref"]) : null;
+  if (!range) {
+    return templatePath;
+  }
+
+  const startRow = headerRow + 1;
+  const anchors = [findCellByValue(sheet, "[Terms & Conditions:]"), findCellByValue(sheet, "[Bank Account]")]
+    .map((anchor) => anchor?.rowIndex)
+    .filter((row) => row && row >= startRow);
+  const endRow = anchors.length > 0 ? Math.min(...anchors) - 1 : range.e.r + 1;
+
+  if (endRow < startRow) {
+    return templatePath;
+  }
+
+  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex += 1) {
+    for (let c = range.s.c; c <= range.e.c; c += 1) {
+      const ref = xlsx.utils.encode_cell({ r: rowIndex - 1, c });
+      const cell = sheet[ref];
+      if (!cell) {
+        continue;
+      }
+      delete cell.f;
+      delete cell.w;
+      cell.t = "s";
+      cell.v = "";
+    }
+  }
+
+  if (sheet["!merges"]) {
+    const startIndex = startRow - 1;
+    const endIndex = endRow - 1;
+    sheet["!merges"] = sheet["!merges"].filter((merge) => {
+      const start = merge.s.r;
+      const end = merge.e.r;
+      return !(start >= startIndex && end <= endIndex);
+    });
+  }
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "hpe-invoice-template-"));
+  const tempPath = path.join(tempDir, path.basename(templatePath));
+  xlsx.writeFile(workbook, tempPath, { cellStyles: true });
+  return tempPath;
+};
+
+const readItemsJsonl = (itemsPath) => {
+  const contents = fs.readFileSync(itemsPath, "utf8");
+  return contents
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+};
+
+const buildInvoiceItemsFromItemsLayer = (records) =>
+  records.map((record, index) => ({
+    lineNo: index + 1,
+    partNumber:
+      record?.product_number ??
+      record?.part_number ??
+      record?.productNumber ??
+      record?.partNumber ??
+      "",
+    description: record?.description ?? "",
+    qty: record?.qty ?? 0,
+    deviceType: record?.device_type ?? record?.deviceType ?? "",
+    vendor: record?.vendor ?? "HPE",
+  }));
+
 const isValidationError = (error) =>
   error instanceof Error &&
   (error.message.startsWith("Cleaned spec is missing required columns:") ||
@@ -108,6 +255,7 @@ const main = async () => {
   let templatePath = templateOverride ? path.resolve(templateOverride) : resolveDefaultPath(DEFAULT_TEMPLATE_PATH);
   const outPath = parsed.outPath || resolveDefaultPath("out/hpe_invoice.xlsx");
   const deviceDictPath = parsed.deviceDictPath || resolveDefaultPath("assets/templates/device_type_dictionary_template.xlsx");
+  const itemsLayerPath = path.join(path.dirname(outPath), "items.jsonl");
 
   console.log(`Using invoice template: ${templatePath}`);
 
@@ -129,28 +277,54 @@ const main = async () => {
     deviceTypeDictionary = loadDeviceTypeDictionary(deviceDictPath);
   }
 
-  const items = readCleanedSpecXlsx(specPath, { deviceTypeDictionary });
-  if (items.length === 0) {
-    console.error("No items found in cleaned spec.");
-    process.exit(1);
+  let itemsLayerRecords = [];
+  let invoiceItems = [];
+  let shouldUseItemsLayer = false;
+  if (fs.existsSync(itemsLayerPath)) {
+    itemsLayerRecords = readItemsJsonl(itemsLayerPath);
+    if (itemsLayerRecords.length === 0) {
+      console.error(`No items found in ${itemsLayerPath}.`);
+      process.exit(1);
+    }
+    invoiceItems = buildInvoiceItemsFromItemsLayer(itemsLayerRecords);
+    shouldUseItemsLayer = true;
+    console.log(`Items layer path: ${itemsLayerPath}`);
+    console.log(`Items layer rows read: ${itemsLayerRecords.length}`);
+  } else {
+    const items = readCleanedSpecXlsx(specPath, { deviceTypeDictionary });
+    if (items.length === 0) {
+      console.error("No items found in cleaned spec.");
+      process.exit(1);
+    }
+
+    invoiceItems = items.map((item) => {
+      const classification = classifyDeviceType({
+        description: item.description,
+        partNumber: item.partNumber,
+        vendor: item.vendor,
+      });
+      return {
+        ...item,
+        deviceType: classification.device_type,
+      };
+    });
   }
 
-  const classifiedItems = items.map((item) => {
-    const classification = classifyDeviceType({
-      description: item.description,
-      partNumber: item.partNumber,
-      vendor: item.vendor,
-    });
-    return {
-      ...item,
-      deviceType: classification.device_type,
-    };
-  });
-
   await ensureDir(outPath);
-  const result = await generateInvoiceXlsx({ templatePath, items: classifiedItems, outPath });
+  const clearedTemplatePath = clearInvoiceItemRows(templatePath);
+  const result = await generateInvoiceXlsx({
+    templatePath: clearedTemplatePath,
+    items: invoiceItems,
+    outPath,
+    itemsLayer: shouldUseItemsLayer ? itemsLayerRecords : undefined,
+    itemsLayerPath: shouldUseItemsLayer ? itemsLayerPath : undefined,
+  });
   if (result?.missingAnchors?.length) {
     console.warn(`Invoice template is missing recommended anchors: ${result.missingAnchors.join(", ")}`);
+  }
+
+  if (shouldUseItemsLayer) {
+    console.log(`Invoice rows written: ${invoiceItems.length}`);
   }
 
   console.log(`Invoice generated: ${outPath}`);
