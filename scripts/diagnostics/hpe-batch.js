@@ -79,6 +79,11 @@ const ensureOutMirror = async (runDir, outDir) => {
   );
 };
 
+export const resolveNpmCommand = (platform = process.platform) => {
+  const command = platform === "win32" ? "npm.cmd" : "npm";
+  return { command, args: [] };
+};
+
 const defaultExec = ({ command, args, env }) => {
   execFileSync(command, args, {
     stdio: "inherit",
@@ -98,6 +103,7 @@ export const runHpeBatch = async ({
   diagnosticsFn = runHpeDiagnostics,
 } = {}) => {
   const inputs = await discoverHpeBatchInputs(batchInputDir);
+  const { command: npmCommand, args: npmArgs } = resolveNpmCommand();
 
   if (inputs.length === 0) {
     console.log(`HPE batch diagnostics: no inputs found in ${batchInputDir}`);
@@ -112,10 +118,10 @@ export const runHpeBatch = async ({
     let runDir = null;
     try {
       await stageHpeBatchInput(inputPath, samplesDir);
-      await execCommand({ command: "npm", args: ["run", "canon:hpe"] });
+      await execCommand({ command: npmCommand, args: [...npmArgs, "run", "canon:hpe"] });
       await execCommand({
-        command: "npm",
-        args: ["run", "docs:hpe:invoice", "--", "--spec", inputPath],
+        command: npmCommand,
+        args: [...npmArgs, "run", "docs:hpe:invoice", "--", "--spec", inputPath],
         env: {
           [DIAGNOSTICS_SKIP_ENV]: "1",
         },

@@ -3,7 +3,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { discoverHpeBatchInputs, runHpeBatch } from "../scripts/diagnostics/hpe-batch.js";
+import { runHpeDiagnostics } from "../scripts/diagnostics/hpe.js";
+import { discoverHpeBatchInputs, resolveNpmCommand, runHpeBatch } from "../scripts/diagnostics/hpe-batch.js";
 
 const writeFile = async (filePath, content) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -27,6 +28,27 @@ test("discoverHpeBatchInputs finds direct .xlsx files in stable order", async ()
   ];
 
   assert.deepEqual(found, expected);
+});
+
+test("resolveNpmCommand uses npm.cmd on Windows and npm elsewhere", () => {
+  assert.deepEqual(resolveNpmCommand("win32"), { command: "npm.cmd", args: [] });
+  assert.deepEqual(resolveNpmCommand("linux"), { command: "npm", args: [] });
+  assert.deepEqual(resolveNpmCommand("darwin"), { command: "npm", args: [] });
+});
+
+test("runHpeDiagnostics writes input_path.txt as utf8 for Unicode paths", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-batch-unicode-"));
+  const inputPath = path.join(tempDir, "заявка.xlsx");
+  await writeFile(inputPath, "content");
+
+  const diagRoot = path.join(tempDir, "diag");
+  const outPath = path.join(tempDir, "out", "hpe_invoice.xlsx");
+  const itemsPath = path.join(tempDir, "out", "items.jsonl");
+
+  const { runDir } = await runHpeDiagnostics({ inputPath, outPath, itemsPath, diagRoot });
+  const recordedPath = await fs.readFile(path.join(runDir, "input_path.txt"), "utf8");
+
+  assert.equal(recordedPath, path.resolve(inputPath));
 });
 
 test("runHpeBatch records per-input snapshots with input paths and distinct inputs", async () => {
