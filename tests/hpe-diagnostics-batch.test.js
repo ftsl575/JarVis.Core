@@ -77,8 +77,23 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
     ]);
 
     let cleanedRunCounter = 0;
+    const scriptsSeen = [];
+    const isWindows = process.platform === "win32";
+    const getScriptName = (args) => args.find((arg) => arg === "canon:hpe" || arg === "docs:hpe:invoice");
+    const getSpecPath = (args) => {
+      const specIndex = args.indexOf("--spec");
+      return specIndex === -1 ? null : args[specIndex + 1];
+    };
     const execCommand = ({ args }) => {
-      const scriptName = args[1];
+      const scriptName = getScriptName(args);
+      if (!scriptName) {
+        throw new Error(`Unexpected command: ${args.join(" ")}`);
+      }
+      if (isWindows) {
+        assert.ok(args.includes("npm.cmd"));
+        assert.equal(args[0], "/c");
+      }
+      scriptsSeen.push(scriptName);
       if (scriptName === "canon:hpe") {
         return fs
           .readFile(path.join(samplesDir, "input.xlsx"), "utf8")
@@ -99,7 +114,8 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
           );
       }
       if (scriptName === "docs:hpe:invoice") {
-        const specPath = args[4];
+        const specPath = getSpecPath(args);
+        assert.ok(specPath);
         cleanedRunCounter += 1;
         const cleanedRunDir = path.join(
           diagRoot,
@@ -115,7 +131,6 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
           ),
         ]);
       }
-      throw new Error(`Unexpected command: ${args.join(" ")}`);
     };
 
     const result = await runHpeBatch({
@@ -128,6 +143,10 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
 
     assert.equal(result.failed, 0);
     assert.equal(result.ok, 3);
+    assert.deepEqual(
+      scriptsSeen,
+      Array.from({ length: inputs.length }, () => ["canon:hpe", "docs:hpe:invoice"]).flat()
+    );
 
     const entries = await fs.readdir(diagRoot, { withFileTypes: true });
     const runDirs = entries.filter((entry) => entry.isDirectory() && entry.name.startsWith("run_"));
