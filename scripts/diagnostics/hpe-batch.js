@@ -130,8 +130,10 @@ const relocateCleanedRun = async (cleanedRunDir, targetRunDir) => {
 };
 
 export const resolveNpmCommand = (platform = process.platform) => {
-  const command = platform === "win32" ? "npm.cmd" : "npm";
-  return { command, args: [] };
+  if (platform === "win32") {
+    return { command: "cmd.exe", args: ["/c", "npm.cmd"] };
+  }
+  return { command: "npm", args: [] };
 };
 
 const defaultExec = ({ command, args, env }) => {
