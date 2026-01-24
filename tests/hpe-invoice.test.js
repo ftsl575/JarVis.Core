@@ -295,7 +295,7 @@ test("docs-hpe-invoice applies type-system classification to device type column"
       ["MR216i controller", "RAID Controller"],
       ["C13-C14 Power Cord", "Power Cord"],
       ["Power Supply 500W", "PSU"],
-      ["Rail Kit", "Blade Chassis"],
+      ["Rail Kit", "Rail Kit"],
     ]);
 
     for (const [description, expectedType] of expectedDeviceTypes.entries()) {
