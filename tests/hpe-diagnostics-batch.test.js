@@ -76,6 +76,7 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
       writeFile(inputs[2], "charlie"),
     ]);
 
+    let cleanedRunCounter = 0;
     const execCommand = ({ args }) => {
       const scriptName = args[1];
       if (scriptName === "canon:hpe") {
@@ -98,7 +99,21 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
           );
       }
       if (scriptName === "docs:hpe:invoice") {
-        return writeFile(path.join(outDir, "hpe_invoice.xlsx"), `invoice:${Date.now()}`);
+        const specPath = args[4];
+        cleanedRunCounter += 1;
+        const cleanedRunDir = path.join(
+          diagRoot,
+          `run_2024-01-01_00000${cleanedRunCounter}__cleaned`
+        );
+        return Promise.all([
+          fs.mkdir(cleanedRunDir, { recursive: true }),
+          writeFile(path.join(outDir, "hpe_invoice.xlsx"), `invoice:${Date.now()}`),
+          writeFile(path.join(cleanedRunDir, "input.xlsx"), `cleaned:${path.basename(specPath)}`),
+          writeFile(
+            path.join(cleanedRunDir, "run_meta.json"),
+            JSON.stringify({ source: path.basename(specPath) })
+          ),
+        ]);
       }
       throw new Error(`Unexpected command: ${args.join(" ")}`);
     };
@@ -117,6 +132,7 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
     const entries = await fs.readdir(diagRoot, { withFileTypes: true });
     const runDirs = entries.filter((entry) => entry.isDirectory() && entry.name.startsWith("run_"));
     assert.equal(runDirs.length, 3);
+    assert.equal(runDirs.some((entry) => entry.name.includes("__cleaned")), false);
 
     const inputContents = new Map();
     for (const inputPath of inputs) {
@@ -142,6 +158,14 @@ test("runHpeBatch records per-input snapshots with input paths and distinct inpu
       assert.ok(outEntries.includes("items.jsonl"));
       assert.ok(outEntries.includes("summary.json"));
       assert.ok(outEntries.includes("hpe_invoice.xlsx"));
+
+      const derivedDir = path.join(runDir, "derived");
+      const cleanedSpecPath = path.join(derivedDir, "cleaned.xlsx");
+      const cleanedMetaPath = path.join(derivedDir, "cleaned_meta.json");
+      const cleanedSpecContents = await fs.readFile(cleanedSpecPath, "utf8");
+      const cleanedMeta = JSON.parse(await fs.readFile(cleanedMetaPath, "utf8"));
+      assert.equal(cleanedSpecContents, `cleaned:${path.basename(expectedInput)}`);
+      assert.equal(cleanedMeta.source, path.basename(expectedInput));
     }
   } finally {
     process.chdir(originalCwd);

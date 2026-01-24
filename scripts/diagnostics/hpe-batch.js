@@ -79,6 +79,56 @@ const ensureOutMirror = async (runDir, outDir) => {
   );
 };
 
+const parseRunLabel = (runDirName) => {
+  if (!runDirName || !runDirName.startsWith("run_")) {
+    return null;
+  }
+  const separatorIndex = runDirName.indexOf("__");
+  if (separatorIndex === -1) {
+    return null;
+  }
+  return runDirName.slice(separatorIndex + 2);
+};
+
+const isCleanedRunLabel = (label) => label === "cleaned" || label.startsWith("cleaned__");
+
+const listCleanedRunDirs = async (diagRoot) => {
+  if (!diagRoot || !fs.existsSync(diagRoot)) {
+    return [];
+  }
+  const entries = await fs.promises.readdir(diagRoot, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => {
+      const label = parseRunLabel(name);
+      return label && isCleanedRunLabel(label);
+    })
+    .map((name) => path.join(diagRoot, name));
+};
+
+const relocateCleanedRun = async (cleanedRunDir, targetRunDir) => {
+  if (!targetRunDir) {
+    await fs.promises.rm(cleanedRunDir, { recursive: true, force: true });
+    return;
+  }
+
+  const derivedDir = path.join(targetRunDir, "derived");
+  await fs.promises.mkdir(derivedDir, { recursive: true });
+
+  const cleanedInputPath = path.join(cleanedRunDir, "input.xlsx");
+  if (fs.existsSync(cleanedInputPath)) {
+    await fs.promises.copyFile(cleanedInputPath, path.join(derivedDir, "cleaned.xlsx"));
+  }
+
+  const cleanedMetaPath = path.join(cleanedRunDir, "run_meta.json");
+  if (fs.existsSync(cleanedMetaPath)) {
+    await fs.promises.copyFile(cleanedMetaPath, path.join(derivedDir, "cleaned_meta.json"));
+  }
+
+  await fs.promises.rm(cleanedRunDir, { recursive: true, force: true });
+};
+
 export const resolveNpmCommand = (platform = process.platform) => {
   const command = platform === "win32" ? "npm.cmd" : "npm";
   return { command, args: [] };
@@ -141,6 +191,15 @@ export const runHpeBatch = async ({
       if (runDir) {
         await ensureOutMirror(runDir, outDir);
       }
+    } catch (error) {
+      if (!runError) {
+        runError = error;
+      }
+    }
+
+    try {
+      const cleanedRunDirs = await listCleanedRunDirs(diagRoot || path.resolve("diag"));
+      await Promise.all(cleanedRunDirs.map((cleanedRunDir) => relocateCleanedRun(cleanedRunDir, runDir)));
     } catch (error) {
       if (!runError) {
         runError = error;
