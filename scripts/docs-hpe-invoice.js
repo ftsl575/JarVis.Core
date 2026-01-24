@@ -7,6 +7,7 @@ import { generateInvoiceXlsx } from "../core/docs/hpe/invoice.js";
 import { readCleanedSpecXlsx } from "../core/docs/hpe/read-cleaned-spec.js";
 import { loadDeviceTypeDictionary } from "../core/docs/hpe/device-type-dict.js";
 import { classifyDeviceType } from "../core/type-system/v1/index.js";
+import { runHpeDiagnostics } from "./diagnostics/hpe.js";
 
 const DEFAULT_TEMPLATE_PATH = "assets/templates/Шаблон инвойса.xlsx";
 const TEMPLATE_ENV_VAR = "JARVIS_TEMPLATE_INVOICE";
@@ -328,6 +329,19 @@ const main = async () => {
   }
 
   console.log(`Invoice generated: ${outPath}`);
+
+  try {
+    const diagnostics = await runHpeDiagnostics({
+      inputPath: specPath,
+      outPath,
+      itemsPath: itemsLayerPath,
+    });
+    console.log(`Diagnostics snapshot: ${diagnostics.runDir}`);
+    console.log(`Diagnostics history entries: ${diagnostics.historyCount}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Diagnostics warning: ${message}`);
+  }
 };
 
 try {

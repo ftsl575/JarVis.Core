@@ -23,6 +23,36 @@
   - vendor-specific (HPE) normalization rules
   - clear error/warning codes for downstream consumers
 
+## HPE diagnostics logging (post-run)
+### Design
+1) Two-level model
+   - Per-run snapshot: immutable run folder under `diag/run_<YYYY-MM-DD_HHMMSS>__<label>`.
+   - Global accumulated history: append-only `diag/history.jsonl` for cross-run analysis.
+2) Separation of concerns
+   - Diagnostics are generated strictly after the HPE invoice workflow completes and are derived from produced outputs only.
+   - Production outputs remain authoritative and unchanged.
+3) Traceability
+   - Each snapshot and history record includes `run_id`, timestamps, the absolute input path (and a byte-identical `input.xlsx` copy), and `git_sha`.
+4) Naming and labeling
+   - `run_id` format: `run_<YYYY-MM-DD_HHMMSS>__<label>`.
+   - Label is derived from the input filename (filesystem-safe), preserving Unicode when possible.
+   - If multiple runs occur within the same second, a deterministic numeric suffix is appended.
+5) Robustness
+   - Missing artifacts do not fail the pipeline; `run_meta.json` records missing entries.
+   - `history.jsonl` is append-only and aggregated per run to avoid duplication within a run.
+
+### What gets captured
+After `npm run docs:hpe:invoice`, a new snapshot folder is created under `diag/` containing:
+- `input.xlsx` (copy of the cleaned spec used to generate the invoice)
+- `input_path.txt` (absolute path to the input file)
+- `canonical.jsonl`
+- `items.jsonl`
+- `summary.json`
+- `hpe_invoice.xlsx`
+- `run_meta.json` (run metadata, file hashes, and counts)
+
+An append-only `diag/history.jsonl` is updated with per-run aggregated records (per part number, description, device type).
+
 ## Inputs needed from user
 - 3–10 sanitized sample HPE configurator `.xlsx` files.
 - Expected outputs for those samples (canonical JSONL / CSV / reference export).
