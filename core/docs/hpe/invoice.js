@@ -21,6 +21,9 @@ const normalizeLookupKey = (value) => normalizeString(value).toLowerCase();
 const normalizeDescriptionValue = (value) =>
   normalizeString(value).replace(/\s+/g, " ").toLowerCase();
 
+const isFactoryIntegrated = (value) =>
+  normalizeString(value).toLowerCase().includes("factory integrated");
+
 const HEADER_LABELS = {
   lineNo: "#",
   partNumber: "Part Number",
@@ -488,6 +491,7 @@ export const generateInvoiceXlsx = async ({
   itemsLayer,
   itemsLayerPath,
 }) => {
+  const filteredItems = items.filter((item) => !isFactoryIntegrated(item?.description));
   const workbook = xlsx.readFile(templatePath, { cellStyles: true });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
@@ -506,13 +510,13 @@ export const generateInvoiceXlsx = async ({
   const deviceTypeLookup = buildDeviceTypeLookup(itemsLayerRecords);
 
   const startRow = headerRow + 1;
-  const delta = Math.max(0, items.length - 1);
+  const delta = Math.max(0, filteredItems.length - 1);
 
   if (delta > 0) {
     shiftRowsDown(sheet, startRow + 1, delta);
   }
 
-  for (let index = 0; index < items.length; index += 1) {
+  for (let index = 0; index < filteredItems.length; index += 1) {
     const rowIndex = startRow + index;
     if (index > 0) {
       cloneTemplateRow(sheet, startRow, rowIndex);
@@ -536,7 +540,7 @@ export const generateInvoiceXlsx = async ({
         : null,
     };
 
-    const item = items[index];
+    const item = filteredItems[index];
     if (colIndexMap.lineNo) {
       setCellValue(sheet, rowIndex, colIndexMap.lineNo, item.lineNo, templateCells.lineNo);
     }
@@ -569,7 +573,7 @@ export const generateInvoiceXlsx = async ({
   }
 
   const itemsStartRow = startRow;
-  const itemCount = items.length;
+  const itemCount = filteredItems.length;
   const lastItemRow = itemCount > 0 ? itemsStartRow + itemCount - 1 : itemsStartRow - 1;
 
   const termsAnchor = findCellByValue(sheet, "[Terms & Conditions:]");
