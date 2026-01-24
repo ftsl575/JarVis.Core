@@ -3,8 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 
-const DIAG_ROOT = path.resolve("diag");
-const HISTORY_PATH = path.join(DIAG_ROOT, "history.jsonl");
+const DEFAULT_DIAG_ROOT = path.resolve("diag");
 const INVALID_LABEL_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
 
 const getTimestamp = (date = new Date()) => {
@@ -63,13 +62,13 @@ const deriveLabel = ({ inputPath, itemsPath }) => {
   return normalizeLabel(baseName || "run");
 };
 
-const resolveRunId = async (label) => {
+const resolveRunId = async (label, diagRoot = DEFAULT_DIAG_ROOT) => {
   const timestamp = getTimestamp();
   const baseId = `run_${timestamp}__${label}`;
   let runId = baseId;
   let suffix = 2;
 
-  while (fs.existsSync(path.join(DIAG_ROOT, runId))) {
+  while (fs.existsSync(path.join(diagRoot, runId))) {
     runId = `${baseId}__${suffix}`;
     suffix += 1;
   }
@@ -109,15 +108,16 @@ const buildTotalsByDeviceType = (items) => {
   return totals;
 };
 
-const appendHistory = async (historyRecords) => {
+const appendHistory = async (historyRecords, diagRoot = DEFAULT_DIAG_ROOT) => {
   if (!historyRecords.length) {
     return;
   }
 
-  await fs.promises.mkdir(DIAG_ROOT, { recursive: true });
+  await fs.promises.mkdir(diagRoot, { recursive: true });
 
   const lines = historyRecords.map((record) => JSON.stringify(record)).join("\n");
-  await fs.promises.appendFile(HISTORY_PATH, `${lines}\n`, "utf8");
+  const historyPath = path.join(diagRoot, "history.jsonl");
+  await fs.promises.appendFile(historyPath, `${lines}\n`, "utf8");
 };
 
 const aggregateHistory = ({ items, runId, timestamp, gitSha, defaultSourceFile }) => {
@@ -148,16 +148,17 @@ const aggregateHistory = ({ items, runId, timestamp, gitSha, defaultSourceFile }
   });
 };
 
-export const runHpeDiagnostics = async ({ inputPath, outPath, itemsPath } = {}) => {
+export const runHpeDiagnostics = async ({ inputPath, outPath, itemsPath, diagRoot } = {}) => {
   const resolvedInputPath = inputPath ? path.resolve(inputPath) : null;
   const resolvedOutPath = outPath ? path.resolve(outPath) : path.resolve("out/hpe_invoice.xlsx");
   const outDir = path.dirname(resolvedOutPath);
   const resolvedItemsPath = itemsPath ? path.resolve(itemsPath) : path.join(outDir, "items.jsonl");
   const canonicalPath = path.join(outDir, "canonical.jsonl");
   const summaryPath = path.join(outDir, "summary.json");
+  const resolvedDiagRoot = diagRoot ? path.resolve(diagRoot) : DEFAULT_DIAG_ROOT;
   const label = deriveLabel({ inputPath: resolvedInputPath, itemsPath: resolvedItemsPath });
-  const runId = await resolveRunId(label);
-  const runDir = path.join(DIAG_ROOT, runId);
+  const runId = await resolveRunId(label, resolvedDiagRoot);
+  const runDir = path.join(resolvedDiagRoot, runId);
   const createdAt = new Date().toISOString();
   const gitSha = resolveGitSha();
   const inputFilename = resolvedInputPath ? path.basename(resolvedInputPath) : "";
@@ -241,7 +242,7 @@ export const runHpeDiagnostics = async ({ inputPath, outPath, itemsPath } = {}) 
     gitSha,
     defaultSourceFile: inputFilename,
   });
-  await appendHistory(historyRecords);
+  await appendHistory(historyRecords, resolvedDiagRoot);
 
   return {
     runId,
