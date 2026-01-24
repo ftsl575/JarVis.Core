@@ -53,6 +53,11 @@ After `npm run docs:hpe:invoice`, a new snapshot folder is created under `diag/`
 
 An append-only `diag/history.jsonl` is updated with per-run aggregated records (per part number, description, device type).
 
+### HPE batch diagnostics
+- Batch inputs live in `C:\Users\G\Desktop\JarVis\JarVis.Core\diag\_batch_inputs` (all direct child `.xlsx`, case-insensitive).
+- Run: `npm run diag:hpe:batch`.
+- Outputs: one `diag/run_<timestamp>__<label>` per input (plus optional `diag/history.jsonl`).
+
 ## Inputs needed from user
 - 3–10 sanitized sample HPE configurator `.xlsx` files.
 - Expected outputs for those samples (canonical JSONL / CSV / reference export).

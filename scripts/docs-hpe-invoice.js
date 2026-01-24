@@ -11,6 +11,7 @@ import { runHpeDiagnostics } from "./diagnostics/hpe.js";
 
 const DEFAULT_TEMPLATE_PATH = "assets/templates/Шаблон инвойса.xlsx";
 const TEMPLATE_ENV_VAR = "JARVIS_TEMPLATE_INVOICE";
+const SKIP_DIAGNOSTICS_ENV_VAR = "JARVIS_SKIP_DIAGNOSTICS";
 
 const usage = () => {
   console.log(
@@ -330,17 +331,21 @@ const main = async () => {
 
   console.log(`Invoice generated: ${outPath}`);
 
-  try {
-    const diagnostics = await runHpeDiagnostics({
-      inputPath: specPath,
-      outPath,
-      itemsPath: itemsLayerPath,
-    });
-    console.log(`Diagnostics snapshot: ${diagnostics.runDir}`);
-    console.log(`Diagnostics history entries: ${diagnostics.historyCount}`);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`Diagnostics warning: ${message}`);
+  if (process.env[SKIP_DIAGNOSTICS_ENV_VAR]) {
+    console.log("Diagnostics snapshot skipped (JARVIS_SKIP_DIAGNOSTICS set).");
+  } else {
+    try {
+      const diagnostics = await runHpeDiagnostics({
+        inputPath: specPath,
+        outPath,
+        itemsPath: itemsLayerPath,
+      });
+      console.log(`Diagnostics snapshot: ${diagnostics.runDir}`);
+      console.log(`Diagnostics history entries: ${diagnostics.historyCount}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`Diagnostics warning: ${message}`);
+    }
   }
 };
 
