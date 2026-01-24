@@ -41,13 +41,28 @@ test("rules v1 extended heuristics", () => {
       expected: "Transceiver",
     },
     {
+      name: "SFP28 SR transceiver",
+      input: { description: "25G SFP28 SR optical transceiver" },
+      expected: "Transceiver",
+    },
+    {
       name: "SFP28 DAC cable",
       input: { description: "25G SFP28 DAC cable" },
       expected: "Cable",
     },
     {
+      name: "QSFP56 AOC cable",
+      input: { description: "QSFP56 AOC cable 3m" },
+      expected: "Cable",
+    },
+    {
       name: "Fibre Channel HBA",
       input: { description: "16Gb Fibre Channel HBA" },
+      expected: "HBA",
+    },
+    {
+      name: "Fibre Channel host bus adapter",
+      input: { description: "32Gb Fibre Channel Host Bus Adapter" },
       expected: "HBA",
     },
     {
@@ -131,6 +146,11 @@ test("rules v1 extended heuristics", () => {
       expected: "GPU",
     },
     {
+      name: "NVIDIA PCIe accelerator",
+      input: { description: "NVIDIA PCIe Accelerator" },
+      expected: "GPU",
+    },
+    {
       name: "Battery",
       input: { description: "RAID BBU battery pack" },
       expected: "Battery",
@@ -153,7 +173,14 @@ test("rules v1 extended heuristics", () => {
     {
       name: "MR216i-o storage controller",
       input: {
-        description: "HPE MR216i-o Gen11 x16 Lanes without Cache OCP SPDM Storage Controller",
+        description: "HPE MR216i-o Storage Controller",
+      },
+      expected: "RAID Controller",
+    },
+    {
+      name: "MR408i controller",
+      input: {
+        description: "MR408i Controller",
       },
       expected: "RAID Controller",
     },
@@ -168,6 +195,13 @@ test("rules v1 extended heuristics", () => {
       name: "Intel E810-CQDA2 Ethernet 100Gb adapter",
       input: {
         description: "Intel E810-CQDA2 Ethernet 100Gb Adapter",
+      },
+      expected: "Network Interface Card",
+    },
+    {
+      name: "Broadcom Ethernet adapter",
+      input: {
+        description: "Broadcom Ethernet Adapter",
       },
       expected: "Network Interface Card",
     },
@@ -224,6 +258,16 @@ test("rules v1 extended heuristics", () => {
     {
       name: "Easy install rail kit stays unclear",
       input: { description: "Easy Install Rail Kit" },
+      expected: "Unclear",
+    },
+    {
+      name: "Enablement kit stays unclear",
+      input: { description: "Enablement Kit" },
+      expected: "Unclear",
+    },
+    {
+      name: "Configuration stays unclear",
+      input: { description: "Configuration" },
       expected: "Unclear",
     },
   ];

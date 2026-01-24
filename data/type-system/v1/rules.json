@@ -69,7 +69,15 @@
       "device_type": "Cable"
     },
     {
-      "pattern": "mr216i-o",
+      "pattern": "mr216i-o storage controller",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "mr216i controller",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "mr408i controller",
       "device_type": "RAID Controller"
     },
     {
@@ -165,6 +173,10 @@
       "device_type": "Cable"
     },
     {
+      "pattern": "cable",
+      "device_type": "Cable"
+    },
+    {
       "pattern": "dac",
       "device_type": "Cable"
     },
@@ -174,6 +186,34 @@
     },
     {
       "pattern": "e810-cqda2 ethernet 100gb 2-port qsfp28 adapter",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "ethernet network interface card",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "ethernet network adapter",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "ethernet adapter",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "ethernet nic",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "e810 ethernet adapter",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "intel e810",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "broadcom ethernet adapter",
       "device_type": "Network Interface Card"
     },
     {
@@ -194,6 +234,14 @@
     },
     {
       "pattern": "sfp28 adapter",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "network interface card",
+      "device_type": "Network Interface Card"
+    },
+    {
+      "pattern": "ocp nic",
       "device_type": "Network Interface Card"
     },
     {
@@ -243,30 +291,6 @@
     {
       "pattern": "sfp",
       "device_type": "Transceiver"
-    },
-    {
-      "pattern": "network interface card",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "ethernet adapter",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "ocp nic",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "nic",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "25gbe",
-      "device_type": "Network Interface Card"
-    },
-    {
-      "pattern": "100gbe",
-      "device_type": "Network Interface Card"
     },
     {
       "pattern": "fan kit",
@@ -333,23 +357,27 @@
       "device_type": "Backplane"
     },
     {
-      "pattern": "hba",
+      "pattern": "fibre channel hba",
       "device_type": "HBA"
     },
     {
-      "pattern": "fibre channel",
+      "pattern": "fiber channel hba",
       "device_type": "HBA"
     },
     {
-      "pattern": "fiber channel",
+      "pattern": "fc hba",
       "device_type": "HBA"
     },
     {
-      "pattern": "16gb fc",
+      "pattern": "fibre channel host bus adapter",
       "device_type": "HBA"
     },
     {
-      "pattern": "32gb fc",
+      "pattern": "fiber channel host bus adapter",
+      "device_type": "HBA"
+    },
+    {
+      "pattern": "fc host bus adapter",
       "device_type": "HBA"
     },
     {
@@ -433,27 +461,31 @@
       "device_type": "RAM"
     },
     {
-      "pattern": "gpu",
+      "pattern": "nvidia gpu",
       "device_type": "GPU"
     },
     {
-      "pattern": "nvidia",
+      "pattern": "nvidia accelerator",
       "device_type": "GPU"
     },
     {
-      "pattern": "a100",
+      "pattern": "nvidia pcie accelerator",
       "device_type": "GPU"
     },
     {
-      "pattern": "h100",
+      "pattern": "nvidia a100",
       "device_type": "GPU"
     },
     {
-      "pattern": "l40",
+      "pattern": "nvidia h100",
       "device_type": "GPU"
     },
     {
-      "pattern": "rtx",
+      "pattern": "nvidia l40",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "nvidia rtx",
       "device_type": "GPU"
     },
     {
