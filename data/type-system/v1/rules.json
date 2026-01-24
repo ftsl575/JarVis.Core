@@ -607,6 +607,14 @@
     {
       "pattern": "support license",
       "device_type": "License"
+    },
+    {
+      "pattern": "inlet ambient operating temperature configuration tracking",
+      "device_type": "Configuration"
+    },
+    {
+      "pattern": "ambient operating temperature configuration tracking",
+      "device_type": "Configuration"
     }
   ]
 }

@@ -334,6 +334,19 @@ test("rules v1 extended heuristics", () => {
       input: { description: "Configuration" },
       expected: "Unclear",
     },
+    {
+      name: "Configuration tracking temperature constraint",
+      input: {
+        description:
+          "HPE ProLiant Compute 20C System Inlet Ambient Operating Temperature Configuration Tracking",
+      },
+      expected: "Configuration",
+    },
+    {
+      name: "Temperature sensor stays unclear",
+      input: { description: "System Inlet Ambient Operating Temperature Sensor" },
+      expected: "Unclear",
+    },
   ];
 
   for (const testCase of cases) {
