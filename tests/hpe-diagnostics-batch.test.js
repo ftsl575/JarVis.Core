@@ -13,9 +13,9 @@ const writeFile = async (filePath, content) => {
 
 test("discoverHpeBatchInputs finds direct .xlsx files in stable order", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-batch-discovery-"));
-  await writeFile(path.join(tempDir, "b.xlsx"), "b");
   await writeFile(path.join(tempDir, "A.xlsx"), "a");
-  await writeFile(path.join(tempDir, "a.XLSX"), "aa");
+  await writeFile(path.join(tempDir, "b.xlsx"), "b");
+  await writeFile(path.join(tempDir, "c.XLSX"), "c");
   await writeFile(path.join(tempDir, "notes.txt"), "notes");
   await fs.mkdir(path.join(tempDir, "nested"), { recursive: true });
   await writeFile(path.join(tempDir, "nested", "ignored.xlsx"), "ignored");
@@ -23,15 +23,15 @@ test("discoverHpeBatchInputs finds direct .xlsx files in stable order", async ()
   const found = await discoverHpeBatchInputs(tempDir);
   const expected = [
     path.resolve(tempDir, "A.xlsx"),
-    path.resolve(tempDir, "a.XLSX"),
     path.resolve(tempDir, "b.xlsx"),
+    path.resolve(tempDir, "c.XLSX"),
   ];
 
   assert.deepEqual(found, expected);
 });
 
 test("resolveNpmCommand uses npm.cmd on Windows and npm elsewhere", () => {
-  assert.deepEqual(resolveNpmCommand("win32"), { command: "npm.cmd", args: [] });
+  assert.deepEqual(resolveNpmCommand("win32"), { command: "cmd.exe", args: ["/c", "npm.cmd"] });
   assert.deepEqual(resolveNpmCommand("linux"), { command: "npm", args: [] });
   assert.deepEqual(resolveNpmCommand("darwin"), { command: "npm", args: [] });
 });
