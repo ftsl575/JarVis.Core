@@ -65,16 +65,28 @@
       "device_type": "Software"
     },
     {
+      "pattern": "localization fio kit",
+      "device_type": "Software"
+    },
+    {
       "pattern": "cable kit",
       "device_type": "Cable"
     },
     {
+      "pattern": "easy install rail kit",
+      "device_type": "Blade Chassis"
+    },
+    {
+      "pattern": "rail kit",
+      "device_type": "Blade Chassis"
+    },
+    {
       "pattern": "drive cage",
-      "device_type": "Unclear"
+      "device_type": "Disk Enclosure"
     },
     {
       "pattern": "drivecage",
-      "device_type": "Unclear"
+      "device_type": "Disk Enclosure"
     },
     {
       "pattern": "cage kit",
@@ -457,6 +469,14 @@
       "device_type": "Blade Chassis"
     },
     {
+      "pattern": "cto server",
+      "device_type": "Blade Chassis"
+    },
+    {
+      "pattern": "cto svr",
+      "device_type": "Blade Chassis"
+    },
+    {
       "pattern": "c7000",
       "device_type": "Blade Chassis"
     },
@@ -490,6 +510,10 @@
     },
     {
       "pattern": "nvidia gpu",
+      "device_type": "GPU"
+    },
+    {
+      "pattern": "gpu accelerator",
       "device_type": "GPU"
     },
     {
@@ -558,6 +582,14 @@
     },
     {
       "pattern": "subscription",
+      "device_type": "License"
+    },
+    {
+      "pattern": "ops management",
+      "device_type": "License"
+    },
+    {
+      "pattern": "saas",
       "device_type": "License"
     },
     {

@@ -171,6 +171,16 @@ test("rules v1 extended heuristics", () => {
       expected: "License",
     },
     {
+      name: "Ops management SaaS license",
+      input: { description: "Ops Management SaaS License" },
+      expected: "License",
+    },
+    {
+      name: "Localization FIO kit",
+      input: { description: "Localization FIO Kit" },
+      expected: "Software",
+    },
+    {
       name: "MR216i-o storage controller",
       input: {
         description: "HPE MR216i-o Storage Controller",
@@ -273,11 +283,11 @@ test("rules v1 extended heuristics", () => {
       expected: "Cooling Module",
     },
     {
-      name: "Tri-Mode drive cage kit stays unclear",
+      name: "Tri-Mode drive cage kit",
       input: {
         description: "Tri-Mode Drive Cage Kit",
       },
-      expected: "Unclear",
+      expected: "Disk Enclosure",
     },
     {
       name: "Generic upgrade kit stays unclear",
@@ -285,9 +295,19 @@ test("rules v1 extended heuristics", () => {
       expected: "Unclear",
     },
     {
-      name: "Easy install rail kit stays unclear",
+      name: "Easy install rail kit",
       input: { description: "Easy Install Rail Kit" },
-      expected: "Unclear",
+      expected: "Blade Chassis",
+    },
+    {
+      name: "CTO server",
+      input: { description: "CTO Server" },
+      expected: "Blade Chassis",
+    },
+    {
+      name: "CTO svr",
+      input: { description: "CTO Svr Gen11" },
+      expected: "Blade Chassis",
     },
     {
       name: "Enablement kit stays unclear",
