@@ -7,6 +7,7 @@
   - Canonical v1 JSONL
   - Items JSONL
   - Summary JSON
+- HPE baseline v1 is documented in `docs/BASELINE.md`.
 - Unicode (Cyrillic) filenames are preserved end-to-end:
   - `source.file` contains the exact original filename
   - derived IDs include the original filename without garbling

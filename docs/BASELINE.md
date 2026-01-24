@@ -1,21 +1,21 @@
-# Baseline Snapshot (Pre-change Freeze)
+# HPE Baseline v1 (Official)
 
 ## Baseline identifier
-- **Suggested tag:** `baseline-2026-01-23`
-- **Purpose:** baseline before equipment type detection work.
+- **Tag:** `hpe-baseline-v1`
+- **Purpose:** this document defines the official HPE baseline v1 for JarVis.Core.
 
-### Tag after merge
+### Tag reference
 ```bash
-git tag -a baseline-2026-01-23 <merge_commit_sha> -m "JarVis.Core baseline before equipment type detection work"
-git push origin baseline-2026-01-23
+git tag -a hpe-baseline-v1 HEAD -m "JarVis.Core HPE baseline v1"
+git push origin hpe-baseline-v1
 ```
 
-## Baseline metadata (fill after merge)
-- **Merge commit SHA:** `<merge_commit_sha>`
-- **PR URL:** `<pr_url>`
-- **Date:** `<yyyy-mm-dd>`
-- **Branch:** `<branch_name>`
-- **Notes:** `<short_notes>`
+## Baseline metadata (recorded)
+- **Merge commit SHA:** recorded by the annotated tag `hpe-baseline-v1`.
+- **PR URL:** documentation-only baseline finalization (this change).
+- **Date:** tag date for `hpe-baseline-v1`.
+- **Branch:** `origin/main`.
+- **Notes:** CI verified with `npm test` passing.
 
 ## What is frozen
 **Included**
@@ -27,8 +27,17 @@ git push origin baseline-2026-01-23
 - Generated outputs and logs (including `logs/baseline/`).
 - Dependency install artifacts (e.g., `node_modules/`).
 
+## Stable device_type set (v1)
+The following `device_type` values are considered correct and stable at HPE baseline v1:
+Network Adapter, PSU, Power Cord, Software, RAID Controller, NVMe, SSD, HDD, CPU, Memory, Backplane, Battery, Blade Chassis, Cable, Cooling Module, Disk Enclosure, Drive Cage, Fabric Interconnect, Fan, Firewall, GPU, HBA, License, Network Interface Card, Network Switch, PDU, RAM, Rail Kit, Router, Server, Tape Library, Transceiver, UPS, Configuration, Unclear.
+
+**Operational classification notes**
+- **Configuration** is a service type and is stable at v1.
+- **Configuration** and **Factory Integrated** are tracking/constraint markers and must not be treated as deliverable supply items in downstream documents.
+
 ## Verification procedure
 Use the baseline verification scripts for a read-only health check and log capture.
+CI is green at this baseline with `npm test` passing.
 
 - macOS/Linux/Git-Bash:
   ```bash
@@ -41,8 +50,11 @@ Use the baseline verification scripts for a read-only health check and log captu
 
 Logs are written to `./logs/baseline/` with timestamped filenames.
 
+## Out of scope / Next phase
+- Generator cleanup (packing list / cleaned spec logic) is the next phase and is out of scope for this baseline.
+
 ## How to compare later
 ```bash
-git diff baseline-2026-01-23..HEAD
-git log --oneline baseline-2026-01-23..HEAD
+git diff hpe-baseline-v1..HEAD
+git log --oneline hpe-baseline-v1..HEAD
 ```
