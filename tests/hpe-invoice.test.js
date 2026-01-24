@@ -237,6 +237,66 @@ test("generates invoice with expected line count", async () => {
   }
 });
 
+test("filters factory integrated rows from invoice output", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-factory-"));
+
+  try {
+    const cleanedSpecPath = path.join(tempDir, "cleaned.xlsx");
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+
+    const cleanedRows = [
+      [
+        "#",
+        "Part Number",
+        "Description",
+        "Device Type",
+        "Тип устройства (RU)",
+        "Qty Components",
+        "Qty Servers",
+      ],
+      [1, "PN-100", "Factory Integrated Controller", "Device", "Устройство", 1, 1],
+      [2, "PN-200", "Standard Adapter", "Device", "Устройство", 2, 1],
+      [3, "PN-300", "factory integrated module", "Device", "Устройство", 1, 1],
+    ];
+    const cleanedWorkbook = createWorkbook(cleanedRows, "Cleaned");
+    xlsx.writeFile(cleanedWorkbook, cleanedSpecPath);
+
+    const templateRows = [
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "#", "Part Number", "Description", "Device Type", "Qty components"],
+      ["", "", "", "", "", ""],
+    ];
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    const items = readCleanedSpecXlsx(cleanedSpecPath);
+    await generateInvoiceXlsx({ templatePath, items, outPath });
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+    const header = findHeaderRow(outputSheet);
+    assert.ok(header);
+
+    let lineCount = 0;
+    for (let i = 1; i <= items.length; i += 1) {
+      const cell = outputSheet[
+        xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: header.descriptionCol - 1 })
+      ];
+      if (cell?.v) {
+        lineCount += 1;
+        assert.ok(!/factory integrated/i.test(String(cell.v)));
+      }
+    }
+
+    assert.equal(lineCount, 1);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test("docs-hpe-invoice applies type-system classification to device type column", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-typesystem-"));
 

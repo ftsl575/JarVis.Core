@@ -16,6 +16,13 @@ const CLEANED_HEADERS = [
   "Qty Servers",
 ];
 
+const isFactoryIntegrated = (value) => {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  return String(value).toLowerCase().includes("factory integrated");
+};
+
 const isExcludedName = (name) => {
   const lowered = name.toLowerCase();
   return (
@@ -34,18 +41,21 @@ export const selectHpeBatchInputs = (names) =>
     return !isExcludedName(name);
   });
 
-const buildCleanedRows = (items) => [
-  CLEANED_HEADERS,
-  ...items.map((item, index) => [
-    index + 1,
-    item.product_number ?? "",
-    item.description ?? "",
-    "",
-    "",
-    item.qty ?? "",
-    "",
-  ]),
-];
+export const buildCleanedRows = (items) => {
+  const filteredItems = items.filter((item) => !isFactoryIntegrated(item?.description));
+  return [
+    CLEANED_HEADERS,
+    ...filteredItems.map((item, index) => [
+      index + 1,
+      item.product_number ?? "",
+      item.description ?? "",
+      "",
+      "",
+      item.qty ?? "",
+      "",
+    ]),
+  ];
+};
 
 const writeCleanedSpecXlsx = (items, outPath) => {
   const workbook = xlsx.utils.book_new();
