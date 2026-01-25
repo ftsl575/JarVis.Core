@@ -17,6 +17,7 @@ const REQUIRED_ARTIFACTS = [
   "summary.json",
   "segments.json",
   "hpe_invoice.xlsx",
+  "cleaned_spec.xlsx",
 ];
 
 const isXlsxFile = (name) => name.toLowerCase().endsWith(".xlsx");
@@ -282,6 +283,12 @@ export const runHpeBatchPack = async ({
         env: {
           [DIAGNOSTICS_SKIP_ENV]: "1",
         },
+        execCommand,
+      });
+      await execStep({
+        stepName: "docs:hpe:cleaned-spec",
+        command: npmCommand,
+        args: [...npmArgs, "run", "docs:hpe:cleaned-spec"],
         execCommand,
       });
       await ensureArtifacts({ runDir, outDir });

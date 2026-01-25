@@ -1,0 +1,70 @@
+{
+  "strategy_id": "fixture",
+  "mode": "strict",
+  "created_at": "2026-01-18T00:00:00.000Z",
+  "items_path": "out/items.jsonl",
+  "files": [
+    {
+      "file": "fixture.xlsx",
+      "segments": [
+        {
+          "segment_id": 1,
+          "is_partial": false,
+          "server_anchor": {
+            "description": "Server Model A",
+            "qty": 2,
+            "part_number": "CTO-1"
+          },
+          "secondary_anchor_rows": [2],
+          "items": [
+            {
+              "item_id": "fixture.xlsx::BOM::1",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 1 },
+              "qty": 2,
+              "product_number": "CTO-1",
+              "description": "Server Model A",
+              "is_anchor": true,
+              "per_server_qty": null
+            },
+            {
+              "item_id": "fixture.xlsx::BOM::2",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 2 },
+              "qty": 4,
+              "product_number": "MEM-1",
+              "description": "Memory DIMM",
+              "is_anchor": false,
+              "per_server_qty": 2
+            },
+            {
+              "item_id": "fixture.xlsx::BOM::3",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 3 },
+              "qty": 2,
+              "product_number": "FIO-1",
+              "description": "Factory Integrated",
+              "is_anchor": false,
+              "per_server_qty": 1
+            }
+          ]
+        },
+        {
+          "segment_id": 2,
+          "is_partial": true,
+          "server_anchor": null,
+          "items": [
+            {
+              "item_id": "fixture.xlsx::BOM::4",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 4 },
+              "qty": 1,
+              "product_number": "NIC-1",
+              "description": "Network Adapter",
+              "is_anchor": false,
+              "per_server_qty": null
+            }
+          ]
+        }
+      ],
+      "findings": []
+    }
+  ],
+  "findings": []
+}
