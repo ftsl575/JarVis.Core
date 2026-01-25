@@ -28,12 +28,16 @@ git push origin hpe-baseline-v1
 - Dependency install artifacts (e.g., `node_modules/`).
 
 ## Stable device_type set (v1)
+The HPE baseline is stable after PR #62.
 The following `device_type` values are considered correct and stable at HPE baseline v1:
-Network Adapter, PSU, Power Cord, Software, RAID Controller, NVMe, SSD, HDD, CPU, Memory, Backplane, Battery, Blade Chassis, Cable, Cooling Module, Disk Enclosure, Drive Cage, Fabric Interconnect, Fan, Firewall, GPU, HBA, License, Network Interface Card, Network Switch, PDU, RAM, Rail Kit, Router, Server, Tape Library, Transceiver, UPS, Configuration, Unclear.
+Network Adapter, PSU, Power Cord, Software, RAID Controller, NVMe, SSD, HDD, CPU, Memory, Backplane, Battery, Blade Chassis, Cable, Cooling Module, Disk Enclosure, Drive Cage, Fabric Interconnect, Fan, Firewall, GPU, HBA, License, Network Interface Card, Network Switch, PDU, RAM, Rail Kit, Riser Kit, Router, Server, Tape Library, Transceiver, UPS, Configuration, Hardware (Accessory), Unclear.
 
 **Operational classification notes**
 - **Configuration** is a service type and is stable at v1.
 - **Configuration** and **Factory Integrated** are tracking/constraint markers and must not be treated as deliverable supply items in downstream documents.
+- **Riser Kit** is part of the approved type-system at this baseline.
+- Classification rules are description-based only.
+- No Part Number (PN)-based classification logic is used.
 
 ## Verification procedure
 Use the baseline verification scripts for a read-only health check and log capture.
