@@ -10,7 +10,8 @@
     "canon:hpe": "node adapters/hpe/index.js samples/hpe --out out",
     "docs:hpe:invoice": "node scripts/docs-hpe-invoice.js",
     "docs:hpe:clean": "node scripts/docs-hpe-clean.js",
-    "diag:hpe:batch": "node scripts/diagnostics/hpe-batch.js"
+    "diag:hpe:batch": "node scripts/diagnostics/hpe-batch.js",
+    "diag:hpe:segments": "node scripts/diagnostics/hpe-segments.js"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
