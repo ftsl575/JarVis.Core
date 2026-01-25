@@ -11,6 +11,19 @@
   "multi_anchor_thresholds": {
     "min_rows_between_anchors": 3
   },
+  "anchor_grouping": {
+    "window_rows": 1,
+    "variant_markers": {
+      "description_regex": [
+        "\\bB19\\b",
+        "\\bMultilingual\\b",
+        "\\bEurope\\b",
+        "\\bRegional\\b",
+        "\\bLocalization\\b"
+      ]
+    },
+    "priority": "first_anchor_wins"
+  },
   "defaults": {
     "default_mode": "permissive"
   }
