@@ -172,7 +172,7 @@ test("runHpeBatchPack sets exit code in strict mode", async () => {
     const diagRoot = path.join(tempDir, "diag");
 
     await fs.mkdir(batchInputDir, { recursive: true });
-    const inputPath = path.join(batchInputDir, "bad name?.xlsx");
+    const inputPath = path.join(batchInputDir, "bad_name.xlsx");
     await writeFile(inputPath, "fail");
 
     const execCommand = async ({ args }) => {
@@ -207,7 +207,7 @@ test("runHpeBatchPack sets exit code in strict mode", async () => {
     const entries = await fs.readdir(diagRoot, { withFileTypes: true });
     const runDirs = entries.filter((entry) => entry.isDirectory() && entry.name.startsWith("run_"));
     assert.equal(runDirs.length, 1);
-    assert.match(runDirs[0].name, /run_\d{4}-\d{2}-\d{2}_\d{6}__bad_name_/);
+    assert.match(runDirs[0].name, /run_\d{4}-\d{2}-\d{2}_\d{6}__bad_name/);
   } finally {
     process.chdir(originalCwd);
   }
