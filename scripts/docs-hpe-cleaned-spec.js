@@ -268,6 +268,31 @@ const normalizeWorksheetView = (sheet, rows) => {
   ];
 };
 
+const MIN_COLUMN_WIDTH = 10;
+
+const getMaxColumnCount = (rows) =>
+  rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+
+const enforceVisibleColumns = (sheet, rows) => {
+  const maxCols = getMaxColumnCount(rows);
+  if (maxCols === 0) {
+    return;
+  }
+
+  const existingCols = Array.isArray(sheet["!cols"]) ? sheet["!cols"] : [];
+  const cols = [];
+  for (let index = 0; index < maxCols; index += 1) {
+    const current = existingCols[index] ?? {};
+    const currentWidth = Number.isFinite(current.wch) ? current.wch : 0;
+    cols[index] = {
+      ...current,
+      hidden: false,
+      wch: Math.max(currentWidth, MIN_COLUMN_WIDTH),
+    };
+  }
+  sheet["!cols"] = cols;
+};
+
 const buildSegmentSheet = ({
   segment,
   file,
@@ -303,11 +328,8 @@ const buildSegmentSheet = ({
   rows.push(...tableRows);
 
   const sheet = xlsx.utils.aoa_to_sheet(rows);
-  const hiddenStart = TABLE_HEADERS.length - 4;
-  sheet["!cols"] = TABLE_HEADERS.map((_, index) =>
-    index >= hiddenStart ? { hidden: true } : {}
-  );
   normalizeWorksheetView(sheet, rows);
+  enforceVisibleColumns(sheet, rows);
   return sheet;
 };
 
