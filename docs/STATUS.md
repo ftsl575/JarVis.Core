@@ -15,6 +15,12 @@
   - Jest removed
   - Tests migrated to Node built-in test runner (`node:test`)
   - `npm test` runs without extra dependencies
+- HPE baseline status (post-PR #62):
+  - Device_type coverage validated on ex1 / ex2 / ex3.
+  - Coverage is 100% for non-Factory-Integrated lines.
+  - Factory Integrated lines are intentionally classified as Configuration and are not coverage gaps.
+  - PR #62 closed the remaining Unclear cases.
+  - CI is green and batch diagnostics are stable.
 
 ## What’s next (1 step)
 - Add Canonical v1 validation and enrichment logic in core processing:
