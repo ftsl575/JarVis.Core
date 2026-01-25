@@ -158,6 +158,80 @@ for (const sample of anchorSamples) {
   });
 }
 
+test("segments group adjacent CTO variants into a single segment", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-segments-adjacent-"));
+  const outDir = path.join(tempDir, "out");
+  const itemsPath = path.join(outDir, "items.jsonl");
+  const segmentsPath = path.join(outDir, "segments.json");
+
+  const items = [
+    {
+      id: "adjacent.xlsx::BOM::10",
+      source: { vendor: "HPE", file: "adjacent.xlsx", sheet: "BOM", row: 10 },
+      qty: 2,
+      product_number: "CTO900",
+      description: "Configure-to-order Server DL360",
+      device_type: "server",
+      raw_ref: { file: "adjacent.xlsx", sheet: "BOM", row: 10 },
+    },
+    {
+      id: "adjacent.xlsx::BOM::11",
+      source: { vendor: "HPE", file: "adjacent.xlsx", sheet: "BOM", row: 11 },
+      qty: 2,
+      product_number: "CTO901",
+      description: "Configure-to-order Server DL360 B19",
+      device_type: "server",
+      raw_ref: { file: "adjacent.xlsx", sheet: "BOM", row: 11 },
+    },
+    {
+      id: "adjacent.xlsx::BOM::13",
+      source: { vendor: "HPE", file: "adjacent.xlsx", sheet: "BOM", row: 13 },
+      qty: 4,
+      product_number: "MEM900",
+      description: "Memory DIMM",
+      device_type: "unknown",
+      raw_ref: { file: "adjacent.xlsx", sheet: "BOM", row: 13 },
+    },
+    {
+      id: "adjacent.xlsx::BOM::14",
+      source: { vendor: "HPE", file: "adjacent.xlsx", sheet: "BOM", row: 14 },
+      qty: 2,
+      product_number: "NIC900",
+      description: "Network Adapter",
+      device_type: "unknown",
+      raw_ref: { file: "adjacent.xlsx", sheet: "BOM", row: 14 },
+    },
+  ];
+
+  try {
+    await fs.mkdir(outDir, { recursive: true });
+    await fs.writeFile(itemsPath, `${items.map((item) => JSON.stringify(item)).join("\n")}\n`, "utf8");
+
+    await runSegments(itemsPath, segmentsPath, "strict");
+
+    const segments = await readJson(segmentsPath);
+    const fileEntry = segments.files.find((entry) => entry.file === "adjacent.xlsx");
+    assert.ok(fileEntry);
+    assert.equal(fileEntry.segments.length, 1);
+
+    const [segment] = fileEntry.segments;
+    const primaryAnchorItem = segment.items.find((item) => item.is_anchor);
+    assert.equal(primaryAnchorItem?.source?.row, 10);
+    assert.deepEqual(segment.secondary_anchor_rows, [11]);
+
+    const segmentItemIds = segment.items.map((item) => item.item_id);
+    assert.ok(segmentItemIds.includes("adjacent.xlsx::BOM::10"));
+    assert.ok(segmentItemIds.includes("adjacent.xlsx::BOM::11"));
+
+    const groupedFindings = fileEntry.findings.filter((finding) => finding.code === "ADJACENT_ANCHORS_GROUPED");
+    assert.equal(groupedFindings.length, 1);
+    assert.deepEqual(groupedFindings[0].context.secondary_anchor_rows, [11]);
+    assert.equal(groupedFindings[0].context.primary_anchor_row, 10);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test("segments file with no anchors produces single partial segment", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-segments-no-anchor-"));
   const outDir = path.join(tempDir, "out");

@@ -39,6 +39,18 @@ const isAnchorDescription = (description, regexes) => {
   return regexes.some((regex) => regex.test(description));
 };
 
+const buildAnchorGroupingConfig = (config = {}) => {
+  const grouping = config?.anchor_grouping ?? {};
+  const windowRows = Number.isFinite(grouping.window_rows) ? grouping.window_rows : 1;
+  const variantRegexes = buildAnchorRegexes(grouping?.variant_markers?.description_regex ?? []);
+  const priority = grouping?.priority ?? "first_anchor_wins";
+  return {
+    windowRows,
+    variantRegexes,
+    priority,
+  };
+};
+
 const normalizeRow = (item) => {
   const row = item?.source?.row ?? item?.source?.row_index ?? item?.source?.rowIndex ?? null;
   if (row === null || row === undefined) {
@@ -205,6 +217,37 @@ const validateMultiAnchor = ({ file, anchors, threshold, findings }) => {
   }
 };
 
+const groupAnchors = ({ anchors, windowRows, variantRegexes }) => {
+  const groups = [];
+  let currentGroup = null;
+
+  for (const anchor of anchors) {
+    if (!currentGroup) {
+      currentGroup = { primary: anchor, secondaries: [] };
+      continue;
+    }
+
+    const primaryRow = normalizeRow(currentGroup.primary.item);
+    const candidateRow = normalizeRow(anchor.item);
+    const distance =
+      primaryRow !== null && candidateRow !== null ? candidateRow - primaryRow : anchor.index - currentGroup.primary.index;
+    const matchesVariant = isAnchorDescription(anchor.item?.description, variantRegexes);
+
+    if (distance <= windowRows && matchesVariant) {
+      currentGroup.secondaries.push(anchor);
+    } else {
+      groups.push(currentGroup);
+      currentGroup = { primary: anchor, secondaries: [] };
+    }
+  }
+
+  if (currentGroup) {
+    groups.push(currentGroup);
+  }
+
+  return groups;
+};
+
 export const segmentHpeItems = async ({
   itemsPath,
   strategyPath,
@@ -217,6 +260,7 @@ export const segmentHpeItems = async ({
   const items = await readJsonl(itemsPath);
   const config = await loadStrategyConfig(strategyPath);
   const regexes = buildAnchorRegexes(config.anchor_patterns || []);
+  const anchorGroupingConfig = buildAnchorGroupingConfig(config);
   const defaultMode = config?.defaults?.default_mode || "permissive";
   const resolvedMode = mode || defaultMode;
 
@@ -259,20 +303,27 @@ export const segmentHpeItems = async ({
         context: { file },
       });
     } else {
-      anchors.forEach((anchor, idx) => {
-        const start = anchor.index;
-        const end = idx + 1 < anchors.length ? anchors[idx + 1].index : fileItems.length;
+      const anchorGroups = groupAnchors({
+        anchors,
+        windowRows: anchorGroupingConfig.windowRows,
+        variantRegexes: anchorGroupingConfig.variantRegexes,
+      });
+
+      anchorGroups.forEach((group, idx) => {
+        const start = group.primary.index;
+        const end = idx + 1 < anchorGroups.length ? anchorGroups[idx + 1].primary.index : fileItems.length;
         const slice = fileItems.slice(start, end);
         const segmentId = idx + 1;
-        const serverQty = anchor.item?.qty ?? null;
+        const serverQty = group.primary.item?.qty ?? null;
         const serverAnchor = {
-          description: anchor.item?.description ?? null,
+          description: group.primary.item?.description ?? null,
           qty: serverQty,
-          part_number: anchor.item?.product_number ?? null,
+          part_number: group.primary.item?.product_number ?? null,
         };
+        const secondaryRows = group.secondaries.map((secondary) => normalizeRow(secondary.item)).filter((row) => row !== null);
 
         const itemsWithDerived = slice.map((item) => {
-          const isAnchor = item === anchor.item;
+          const isAnchor = item === group.primary.item;
           let perServerQty = null;
           if (!isAnchor && Number.isFinite(serverQty) && serverQty > 0) {
             perServerQty = Number(item?.qty) / serverQty;
@@ -280,18 +331,34 @@ export const segmentHpeItems = async ({
           return makeItemReference(item, { isAnchor, perServerQty });
         });
 
-        segments.push({
+        const segment = {
           segment_id: segmentId,
           is_partial: false,
           server_anchor: serverAnchor,
           items: itemsWithDerived,
-        });
+        };
+
+        if (secondaryRows.length > 0) {
+          segment.secondary_anchor_rows = secondaryRows;
+          addFinding(fileFindings, {
+            code: "ADJACENT_ANCHORS_GROUPED",
+            severity: "INFO",
+            message: "Grouped adjacent CTO anchors into a single segment.",
+            context: {
+              primary_anchor_row: normalizeRow(group.primary.item),
+              secondary_anchor_rows: secondaryRows,
+              window_rows: anchorGroupingConfig.windowRows,
+            },
+          });
+        }
+
+        segments.push(segment);
       });
 
       validateMultiAnchor({
         file,
-        anchors: anchors.map((anchor, idx) => ({
-          ...anchor,
+        anchors: anchorGroups.map((group, idx) => ({
+          ...group.primary,
           segmentId: idx + 1,
         })),
         threshold: config?.multi_anchor_thresholds?.min_rows_between_anchors ?? null,
@@ -337,4 +404,3 @@ export const writeSegments = async ({ outputPath, payload }) => {
   await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.promises.writeFile(outputPath, JSON.stringify(payload, null, 2), "utf8");
 };
-
