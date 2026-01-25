@@ -96,7 +96,40 @@ const buildSecondaryAnchorText = ({ segment, file, itemByFileRow }) => {
   return descriptions.join("; ");
 };
 
-const isFactoryIntegrated = (description) => description === "Factory Integrated";
+const normalizeDescription = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const isFactoryIntegrated = (description) =>
+  normalizeDescription(description).toLowerCase() === "factory integrated";
+
+const TRACKING_DEVICE_TYPES = new Set([
+  "service",
+  "license",
+  "support",
+  "subscription",
+  "enablement",
+  "warranty",
+]);
+const TRACKING_KEYWORDS = [
+  "support",
+  "service",
+  "care",
+  "warranty",
+  "license",
+  "subscription",
+  "enablement",
+  "registration",
+  "entitlement",
+];
+
+const isTrackingRow = ({ description, deviceType }) => {
+  const normalizedType = normalizeDescription(deviceType).toLowerCase();
+  if (TRACKING_DEVICE_TYPES.has(normalizedType)) {
+    return true;
+  }
+  const normalizedDescription = normalizeDescription(description).toLowerCase();
+  return TRACKING_KEYWORDS.some((keyword) => normalizedDescription.includes(keyword));
+};
 
 const buildSegmentTableRows = ({
   segment,
@@ -108,11 +141,9 @@ const buildSegmentTableRows = ({
   const items = Array.isArray(segment?.items) ? segment.items : [];
   const anchorRef = items.find((item) => item?.is_anchor);
   const rows = [];
+  const serverCount = segment?.server_anchor?.qty ?? null;
 
   const shouldIncludeRow = (ref) => {
-    if (ref?.is_anchor) {
-      return true;
-    }
     const item = ref?.item_id ? itemById.get(ref.item_id) : null;
     const description = item?.description ?? ref?.description ?? "";
     if (!includeFactoryIntegrated && isFactoryIntegrated(description)) {
@@ -141,18 +172,29 @@ const buildSegmentTableRows = ({
     if (!anchorItem && anchorRef?.item_id) {
       warnings.add(`Missing item in items.jsonl: ${anchorRef.item_id}`);
     }
-    rows.push([
-      1,
-      normalizeNumber(segment.server_anchor?.qty ?? anchorItem?.qty ?? anchorRef?.qty ?? ""),
-      resolvePartNumber(anchorItem) || resolvePartNumber(anchorRef) || segment.server_anchor?.part_number || "",
-      anchorItem?.description ?? anchorRef?.description ?? segment.server_anchor?.description ?? "",
-      anchorItem?.device_type ?? "",
-      anchorItem?.line_type ?? "",
-      anchorItem?.source?.file ?? anchorRef?.source?.file ?? file ?? "",
-      anchorItem?.source?.sheet ?? anchorRef?.source?.sheet ?? "",
-      normalizeNumber(anchorItem?.source?.row ?? anchorRef?.source?.row ?? ""),
-      anchorItem?.id ?? anchorRef?.item_id ?? "",
-    ]);
+    const description =
+      anchorItem?.description ?? anchorRef?.description ?? segment.server_anchor?.description ?? "";
+    rows.push({
+      isTracking: isTrackingRow({
+        description,
+        deviceType: anchorItem?.device_type ?? "",
+      }),
+      values: [
+        1,
+        normalizeNumber(segment.server_anchor?.qty ?? ""),
+        resolvePartNumber(anchorItem) ||
+          resolvePartNumber(anchorRef) ||
+          segment.server_anchor?.part_number ||
+          "",
+        description,
+        anchorItem?.device_type ?? "",
+        anchorItem?.line_type ?? "",
+        anchorItem?.source?.file ?? anchorRef?.source?.file ?? file ?? "",
+        anchorItem?.source?.sheet ?? anchorRef?.source?.sheet ?? "",
+        normalizeNumber(anchorItem?.source?.row ?? anchorRef?.source?.row ?? ""),
+        anchorItem?.id ?? anchorRef?.item_id ?? "",
+      ],
+    });
   }
 
   for (const ref of nonAnchorRows) {
@@ -160,21 +202,42 @@ const buildSegmentTableRows = ({
     if (!item && ref?.item_id) {
       warnings.add(`Missing item in items.jsonl: ${ref.item_id}`);
     }
-    rows.push([
-      normalizeNumber(ref?.per_server_qty ?? ""),
-      normalizeNumber(item?.qty ?? ref?.qty ?? ""),
-      resolvePartNumber(item) || resolvePartNumber(ref),
-      item?.description ?? ref?.description ?? "",
-      item?.device_type ?? "",
-      item?.line_type ?? "",
-      item?.source?.file ?? ref?.source?.file ?? file ?? "",
-      item?.source?.sheet ?? ref?.source?.sheet ?? "",
-      normalizeNumber(item?.source?.row ?? ref?.source?.row ?? ""),
-      item?.id ?? ref?.item_id ?? "",
-    ]);
+    const perServerQty = ref?.per_server_qty ?? "";
+    const totalQty =
+      Number.isFinite(perServerQty) && Number.isFinite(serverCount)
+        ? perServerQty * serverCount
+        : item?.qty ?? ref?.qty ?? "";
+    const description = item?.description ?? ref?.description ?? "";
+    rows.push({
+      isTracking: isTrackingRow({
+        description,
+        deviceType: item?.device_type ?? "",
+      }),
+      values: [
+        normalizeNumber(perServerQty),
+        normalizeNumber(totalQty),
+        resolvePartNumber(item) || resolvePartNumber(ref),
+        description,
+        item?.device_type ?? "",
+        item?.line_type ?? "",
+        item?.source?.file ?? ref?.source?.file ?? file ?? "",
+        item?.source?.sheet ?? ref?.source?.sheet ?? "",
+        normalizeNumber(item?.source?.row ?? ref?.source?.row ?? ""),
+        item?.id ?? ref?.item_id ?? "",
+      ],
+    });
   }
 
-  return rows;
+  const physical = [];
+  const tracking = [];
+  for (const row of rows) {
+    if (row.isTracking) {
+      tracking.push(row.values);
+    } else {
+      physical.push(row.values);
+    }
+  }
+  return [...physical, ...tracking];
 };
 
 const buildSegmentSheet = ({

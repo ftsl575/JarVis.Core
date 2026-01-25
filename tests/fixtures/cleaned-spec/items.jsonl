@@ -1,4 +1,6 @@
-{"id":"fixture.xlsx::BOM::1","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":1},"qty":2,"product_number":"CTO-1","description":"Server Model A","device_type":"server","line_type":"anchor"}
-{"id":"fixture.xlsx::BOM::2","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":2},"qty":4,"product_number":"MEM-1","description":"Memory DIMM","device_type":"memory","line_type":"component"}
-{"id":"fixture.xlsx::BOM::3","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":3},"qty":2,"product_number":"FIO-1","description":"Factory Integrated","device_type":"configuration","line_type":"fio"}
-{"id":"fixture.xlsx::BOM::4","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":4},"qty":1,"product_number":"NIC-1","description":"Network Adapter","device_type":"network","line_type":"component"}
+{"id":"fixture.xlsx::BOM::1","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":1},"qty":3,"product_number":"CTO-1","description":"Server Model A","device_type":"server","line_type":"anchor"}
+{"id":"fixture.xlsx::BOM::2","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":2},"qty":6,"product_number":"MEM-1","description":"Memory DIMM","device_type":"memory","line_type":"component"}
+{"id":"fixture.xlsx::BOM::3","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":3},"qty":3,"product_number":"FIO-1","description":"factory integrated","device_type":"configuration","line_type":"fio"}
+{"id":"fixture.xlsx::BOM::4","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":4},"qty":3,"product_number":"SVC-1","description":"Onsite Service Plan","device_type":"Service","line_type":"support"}
+{"id":"fixture.xlsx::BOM::5","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":5},"qty":3,"product_number":"WR-1","description":"Warranty registration kit","device_type":"component","line_type":"support"}
+{"id":"fixture.xlsx::BOM::6","source":{"vendor":"HPE","file":"fixture.xlsx","sheet":"BOM","row":6},"qty":3,"product_number":"NIC-1","description":"Network Adapter","device_type":"network","line_type":"component"}
