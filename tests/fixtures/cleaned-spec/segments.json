@@ -12,7 +12,7 @@
           "is_partial": false,
           "server_anchor": {
             "description": "Server Model A",
-            "qty": 2,
+            "qty": 3,
             "part_number": "CTO-1"
           },
           "secondary_anchor_rows": [2],
@@ -20,7 +20,7 @@
             {
               "item_id": "fixture.xlsx::BOM::1",
               "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 1 },
-              "qty": 2,
+              "qty": 3,
               "product_number": "CTO-1",
               "description": "Server Model A",
               "is_anchor": true,
@@ -29,7 +29,7 @@
             {
               "item_id": "fixture.xlsx::BOM::2",
               "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 2 },
-              "qty": 4,
+              "qty": 6,
               "product_number": "MEM-1",
               "description": "Memory DIMM",
               "is_anchor": false,
@@ -38,9 +38,36 @@
             {
               "item_id": "fixture.xlsx::BOM::3",
               "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 3 },
-              "qty": 2,
+              "qty": 3,
               "product_number": "FIO-1",
-              "description": "Factory Integrated",
+              "description": "factory integrated",
+              "is_anchor": false,
+              "per_server_qty": 1
+            },
+            {
+              "item_id": "fixture.xlsx::BOM::4",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 4 },
+              "qty": 3,
+              "product_number": "SVC-1",
+              "description": "Onsite Service Plan",
+              "is_anchor": false,
+              "per_server_qty": 1
+            },
+            {
+              "item_id": "fixture.xlsx::BOM::5",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 5 },
+              "qty": 3,
+              "product_number": "WR-1",
+              "description": "Warranty registration kit",
+              "is_anchor": false,
+              "per_server_qty": 1
+            },
+            {
+              "item_id": "fixture.xlsx::BOM::6",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 6 },
+              "qty": 3,
+              "product_number": "NIC-1",
+              "description": "Network Adapter",
               "is_anchor": false,
               "per_server_qty": 1
             }
@@ -52,8 +79,8 @@
           "server_anchor": null,
           "items": [
             {
-              "item_id": "fixture.xlsx::BOM::4",
-              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 4 },
+              "item_id": "fixture.xlsx::BOM::6",
+              "source": { "file": "fixture.xlsx", "sheet": "BOM", "row": 6 },
               "qty": 1,
               "product_number": "NIC-1",
               "description": "Network Adapter",

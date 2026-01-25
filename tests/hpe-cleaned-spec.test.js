@@ -65,22 +65,35 @@ test("docs:hpe:cleaned-spec generates sheets and hides Factory Integrated rows b
     assert.equal(serverDescRow?.[1], "Server Model A");
 
     const serverCountRow = rows1[findRowIndex(rows1, "Server count in order")];
-    assert.equal(serverCountRow?.[1], 2);
+    assert.equal(serverCountRow?.[1], 3);
 
     const tableHeaderIndex = findTableHeaderIndex(rows1);
     assert.ok(tableHeaderIndex >= 0);
     const anchorRow = rows1[tableHeaderIndex + 1];
-    assert.deepEqual(anchorRow.slice(0, 4), [1, 2, "CTO-1", "Server Model A"]);
+    assert.deepEqual(anchorRow.slice(0, 4), [1, 3, "CTO-1", "Server Model A"]);
 
     const memoryRow = rows1.find((row) => row[3] === "Memory DIMM");
     assert.ok(memoryRow);
     assert.equal(memoryRow[0], 2);
-    assert.equal(memoryRow[1], 4);
+    assert.equal(memoryRow[1], 6);
     assert.equal(memoryRow[4], "memory");
     assert.equal(memoryRow[5], "component");
 
-    const fioRow = rows1.find((row) => row[3] === "Factory Integrated");
+    const fioRow = rows1.find((row) => row[3]?.toLowerCase() === "factory integrated");
     assert.equal(fioRow, undefined);
+
+    const tableRows = rows1.slice(tableHeaderIndex + 1).filter((row) => row[3]);
+    const descriptions = tableRows.map((row) => row[3]);
+    assert.deepEqual(descriptions, [
+      "Server Model A",
+      "Memory DIMM",
+      "Network Adapter",
+      "Onsite Service Plan",
+      "Warranty registration kit",
+    ]);
+
+    const statusRowIndex = findRowIndex(rows1, "PARTIAL / UNANCHORED");
+    assert.equal(statusRowIndex, -1);
 
     const sheet2 = workbook.Sheets["Cfg 02"];
     const rows2 = readSheetRows(sheet2);
@@ -103,7 +116,7 @@ test("docs:hpe:cleaned-spec includes Factory Integrated rows when enabled", asyn
     const workbook = xlsx.readFile(outputPath);
     const sheet = workbook.Sheets["Cfg 01"];
     const rows = readSheetRows(sheet);
-    const fioRow = rows.find((row) => row[3] === "Factory Integrated");
+    const fioRow = rows.find((row) => row[3]?.toLowerCase() === "factory integrated");
     assert.ok(fioRow);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
