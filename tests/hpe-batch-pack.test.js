@@ -22,7 +22,13 @@ const readOptionalFile = async (filePath) => {
 };
 
 const getScriptName = (args) =>
-  args.find((arg) => arg === "canon:hpe" || arg === "diag:hpe:segments" || arg === "docs:hpe:invoice");
+  args.find(
+    (arg) =>
+      arg === "canon:hpe" ||
+      arg === "diag:hpe:segments" ||
+      arg === "docs:hpe:invoice" ||
+      arg === "docs:hpe:cleaned-spec"
+  );
 
 const getSpecPath = (args) => {
   const specIndex = args.indexOf("--spec");
@@ -104,6 +110,11 @@ test("runHpeBatchPack snapshots per input and continues in permissive mode", asy
         return { status: 0, stdout: "", stderr: "" };
       }
 
+      if (scriptName === "docs:hpe:cleaned-spec") {
+        await writeFile(path.join(outDir, "cleaned_spec.xlsx"), "cleaned-spec");
+        return { status: 0, stdout: "", stderr: "" };
+      }
+
       return { status: 0, stdout: "", stderr: "" };
     };
 
@@ -149,6 +160,7 @@ test("runHpeBatchPack snapshots per input and continues in permissive mode", asy
           "summary.json",
           "segments.json",
           "hpe_invoice.xlsx",
+          "cleaned_spec.xlsx",
         ]) {
           const filePath = path.join(runDir, name);
           await assert.doesNotReject(() => fs.stat(filePath));

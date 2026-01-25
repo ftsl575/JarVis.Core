@@ -8,6 +8,7 @@
     "test": "node --test",
     "check:no-binaries": "node scripts/check-no-binaries.js",
     "canon:hpe": "node adapters/hpe/index.js samples/hpe --out out",
+    "docs:hpe:cleaned-spec": "node scripts/docs-hpe-cleaned-spec.js",
     "docs:hpe:invoice": "node scripts/docs-hpe-invoice.js",
     "docs:hpe:clean": "node scripts/docs-hpe-clean.js",
     "diag:hpe:batch": "node scripts/diagnostics/hpe-batch.js",

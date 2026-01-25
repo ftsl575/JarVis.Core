@@ -37,6 +37,24 @@ Output:
 
 - `out/segments.json`
 
+## HPE cleaned spec generation (per configuration)
+
+Run the command:
+
+```bash
+npm run docs:hpe:cleaned-spec
+```
+
+Output:
+
+- `out/cleaned_spec.xlsx`
+
+Notes:
+
+- Uses only `out/items.jsonl` + `out/segments.json`.
+- Default output hides rows with description exactly equal to `Factory Integrated`.
+- Set `HPE_CLEANED_SPEC_INCLUDE_FIO=1` to include those rows.
+
 ## HPE invoice generation
 
 Prerequisites:
