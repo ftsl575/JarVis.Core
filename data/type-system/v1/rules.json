@@ -6,7 +6,7 @@
   "keywords": [
     {
       "pattern": "factory integrated",
-      "device_type": "Unclear"
+      "device_type": "Configuration"
     },
     {
       "pattern": "c13 - c14",
@@ -93,6 +93,38 @@
       "device_type": "Software"
     },
     {
+      "pattern": "enablement kit",
+      "device_type": "Configuration"
+    },
+    {
+      "pattern": "fio configuration",
+      "device_type": "Configuration"
+    },
+    {
+      "pattern": "fio enablement",
+      "device_type": "Configuration"
+    },
+    {
+      "pattern": "configuration",
+      "device_type": "Configuration"
+    },
+    {
+      "pattern": "riser kit",
+      "device_type": "Riser Kit"
+    },
+    {
+      "pattern": "primary riser",
+      "device_type": "Riser Kit"
+    },
+    {
+      "pattern": "secondary riser",
+      "device_type": "Riser Kit"
+    },
+    {
+      "pattern": "tertiary riser",
+      "device_type": "Riser Kit"
+    },
+    {
       "pattern": "cable kit",
       "device_type": "Cable"
     },
@@ -145,11 +177,23 @@
       "device_type": "RAID Controller"
     },
     {
+      "pattern": "mr408i-o",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "mr416i-o",
+      "device_type": "RAID Controller"
+    },
+    {
       "pattern": "mr408i controller",
       "device_type": "RAID Controller"
     },
     {
       "pattern": "raid controller",
+      "device_type": "RAID Controller"
+    },
+    {
+      "pattern": "storage controller",
       "device_type": "RAID Controller"
     },
     {
@@ -441,6 +485,10 @@
       "device_type": "HBA"
     },
     {
+      "pattern": "securehba",
+      "device_type": "HBA"
+    },
+    {
       "pattern": "fiber channel hba",
       "device_type": "HBA"
     },
@@ -587,6 +635,18 @@
     {
       "pattern": "nvidia rtx",
       "device_type": "GPU"
+    },
+    {
+      "pattern": "pcie accelerator",
+      "device_type": "Hardware (Accessory)"
+    },
+    {
+      "pattern": "nvlink bridge",
+      "device_type": "Hardware (Accessory)"
+    },
+    {
+      "pattern": "power distribution board",
+      "device_type": "Hardware (Accessory)"
     },
     {
       "pattern": "battery",

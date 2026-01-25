@@ -66,6 +66,11 @@ test("rules v1 extended heuristics", () => {
       expected: "HBA",
     },
     {
+      name: "SecureHBA adapter",
+      input: { description: "SN1620E 32Gb SecureHBA" },
+      expected: "HBA",
+    },
+    {
       name: "Smart Array RAID Controller",
       input: { description: "Smart Array RAID Controller" },
       expected: "RAID Controller",
@@ -151,6 +156,21 @@ test("rules v1 extended heuristics", () => {
       expected: "GPU",
     },
     {
+      name: "HPE PCIe accelerator accessory",
+      input: { description: "NVIDIA H200 PCIe Accelerator" },
+      expected: "Hardware (Accessory)",
+    },
+    {
+      name: "NVLink bridge accessory",
+      input: { description: "NVIDIA 4-way NVLink Bridge" },
+      expected: "Hardware (Accessory)",
+    },
+    {
+      name: "Power distribution board accessory",
+      input: { description: "Power Distribution Board Kit" },
+      expected: "Hardware (Accessory)",
+    },
+    {
       name: "Battery",
       input: { description: "RAID BBU battery pack" },
       expected: "Battery",
@@ -199,6 +219,13 @@ test("rules v1 extended heuristics", () => {
       name: "MR408i controller",
       input: {
         description: "MR408i Controller",
+      },
+      expected: "RAID Controller",
+    },
+    {
+      name: "MR416i-o storage controller",
+      input: {
+        description: "MR416i-o Storage Controller",
       },
       expected: "RAID Controller",
     },
@@ -325,14 +352,29 @@ test("rules v1 extended heuristics", () => {
       expected: "Server",
     },
     {
-      name: "Enablement kit stays unclear",
+      name: "Enablement kit is configuration",
       input: { description: "Enablement Kit" },
-      expected: "Unclear",
+      expected: "Configuration",
     },
     {
-      name: "Configuration stays unclear",
+      name: "Configuration keyword is configuration",
       input: { description: "Configuration" },
-      expected: "Unclear",
+      expected: "Configuration",
+    },
+    {
+      name: "FIO enablement kit is configuration",
+      input: { description: "Switchboard FIO Enablement Kit" },
+      expected: "Configuration",
+    },
+    {
+      name: "Riser kit",
+      input: { description: "DL380 Gen11 Riser Kit" },
+      expected: "Riser Kit",
+    },
+    {
+      name: "Primary riser kit",
+      input: { description: "DL380 Gen11 Primary Riser" },
+      expected: "Riser Kit",
     },
     {
       name: "Configuration tracking temperature constraint",

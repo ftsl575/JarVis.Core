@@ -33,11 +33,11 @@ test("classifies device types with deterministic rules", () => {
       expected: "Power Cord",
     },
     {
-      name: "Factory integrated power cord remains unclear",
+      name: "Factory integrated power cord is configuration",
       input: {
         description: "Factory Integrated C13/C14 Power Cord",
       },
-      expected: "Unclear",
+      expected: "Configuration",
     },
     {
       name: "HPE OneView software",
@@ -54,11 +54,11 @@ test("classifies device types with deterministic rules", () => {
       expected: "Software",
     },
     {
-      name: "Factory integrated management enablement remains unclear",
+      name: "Factory integrated management enablement is configuration",
       input: {
         description: "Factory Integrated Compute Cloud Management Server FIO Enablement",
       },
-      expected: "Unclear",
+      expected: "Configuration",
     },
     {
       name: "Ball bearing rail kit",
@@ -68,11 +68,11 @@ test("classifies device types with deterministic rules", () => {
       expected: "Rail Kit",
     },
     {
-      name: "Factory integrated rail kit remains unclear",
+      name: "Factory integrated rail kit is configuration",
       input: {
         description: "Factory Integrated Ball Bearing Rail Kit",
       },
-      expected: "Unclear",
+      expected: "Configuration",
     },
     {
       name: "Configuration tracking",
@@ -82,11 +82,11 @@ test("classifies device types with deterministic rules", () => {
       expected: "Configuration",
     },
     {
-      name: "Factory integrated configuration tracking remains unclear",
+      name: "Factory integrated configuration tracking is configuration",
       input: {
         description: "Factory Integrated Configuration Tracking",
       },
-      expected: "Unclear",
+      expected: "Configuration",
     },
     {
       name: "Air baffle cooling module",
@@ -96,11 +96,11 @@ test("classifies device types with deterministic rules", () => {
       expected: "Cooling Module",
     },
     {
-      name: "Factory integrated air baffle remains unclear",
+      name: "Factory integrated air baffle is configuration",
       input: {
         description: "Factory Integrated Air Baffle",
       },
-      expected: "Unclear",
+      expected: "Configuration",
     },
     {
       name: "Bezel kit",
@@ -110,11 +110,11 @@ test("classifies device types with deterministic rules", () => {
       expected: "Bezel",
     },
     {
-      name: "Factory integrated bezel kit remains unclear",
+      name: "Factory integrated bezel kit is configuration",
       input: {
         description: "Factory Integrated Bezel Kit",
       },
-      expected: "Unclear",
+      expected: "Configuration",
     },
     {
       name: "RAID controller",
