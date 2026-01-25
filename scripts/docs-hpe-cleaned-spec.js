@@ -240,6 +240,34 @@ const buildSegmentTableRows = ({
   return [...physical, ...tracking];
 };
 
+const normalizeWorksheetView = (sheet, rows) => {
+  const maxRows = rows.length;
+  const maxCols = rows.reduce(
+    (max, row) => Math.max(max, Array.isArray(row) ? row.length : 0),
+    0
+  );
+  if (maxRows > 0 && maxCols > 0) {
+    sheet["!ref"] = xlsx.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: maxRows - 1, c: maxCols - 1 },
+    });
+  }
+  delete sheet["!autofilter"];
+  delete sheet["!printarea"];
+  delete sheet["!freeze"];
+  delete sheet["!pane"];
+  delete sheet["!panes"];
+  sheet["!views"] = [
+    {
+      state: "normal",
+      activeCell: "A1",
+      topLeftCell: "A1",
+      zoomScale: 100,
+      zoomScaleNormal: 100,
+    },
+  ];
+};
+
 const buildSegmentSheet = ({
   segment,
   file,
@@ -279,16 +307,114 @@ const buildSegmentSheet = ({
   sheet["!cols"] = TABLE_HEADERS.map((_, index) =>
     index >= hiddenStart ? { hidden: true } : {}
   );
+  normalizeWorksheetView(sheet, rows);
   return sheet;
+};
+
+const buildItemKey = (item) => {
+  if (item?.item_id) {
+    return `id:${item.item_id}`;
+  }
+  const file = item?.source?.file;
+  const row = item?.source?.row;
+  if (file && Number.isFinite(row)) {
+    return `row:${file}:${row}`;
+  }
+  return null;
+};
+
+const getAnchorRow = (segment) => {
+  const items = Array.isArray(segment?.items) ? segment.items : [];
+  const anchor = items.find((item) => item?.is_anchor);
+  const row = anchor?.source?.row;
+  return Number.isFinite(row) ? row : null;
+};
+
+const mergeSegmentItems = (target, source) => {
+  const targetItems = Array.isArray(target?.items) ? [...target.items] : [];
+  const existing = new Set(targetItems.map(buildItemKey).filter(Boolean));
+  const sourceItems = Array.isArray(source?.items) ? source.items : [];
+  for (const item of sourceItems) {
+    const key = buildItemKey(item);
+    if (!key || !existing.has(key)) {
+      targetItems.push(item);
+      if (key) {
+        existing.add(key);
+      }
+    }
+  }
+  target.items = targetItems;
+};
+
+const mergeSecondaryAnchors = (target, source, anchorRow) => {
+  const rows = new Set(
+    Array.isArray(target?.secondary_anchor_rows) ? target.secondary_anchor_rows : []
+  );
+  if (Number.isFinite(anchorRow)) {
+    rows.add(anchorRow);
+  }
+  for (const row of Array.isArray(source?.secondary_anchor_rows) ? source.secondary_anchor_rows : []) {
+    if (Number.isFinite(row)) {
+      rows.add(row);
+    }
+  }
+  if (rows.size > 0) {
+    target.secondary_anchor_rows = Array.from(rows).sort((a, b) => a - b);
+  }
+};
+
+const normalizeSegments = (segments) => {
+  const files = Array.isArray(segments?.files) ? segments.files : [];
+  const normalizedFiles = files.map((fileEntry) => {
+    const file = fileEntry?.file ?? "";
+    const fileSegments = Array.isArray(fileEntry?.segments) ? fileEntry.segments : [];
+    const secondaryAnchorMap = new Map();
+
+    for (const segment of fileSegments) {
+      const rows = Array.isArray(segment?.secondary_anchor_rows)
+        ? segment.secondary_anchor_rows
+        : [];
+      for (const row of rows) {
+        if (Number.isFinite(row)) {
+          secondaryAnchorMap.set(`${file}::${row}`, segment);
+        }
+      }
+    }
+
+    const merged = [];
+    for (const segment of fileSegments) {
+      const anchorRow = getAnchorRow(segment);
+      const anchorKey =
+        Number.isFinite(anchorRow) && file ? `${file}::${anchorRow}` : null;
+      const primary = anchorKey ? secondaryAnchorMap.get(anchorKey) : null;
+      if (primary && primary !== segment) {
+        mergeSegmentItems(primary, segment);
+        mergeSecondaryAnchors(primary, segment, anchorRow);
+        continue;
+      }
+      merged.push(segment);
+    }
+
+    return {
+      ...fileEntry,
+      segments: merged,
+    };
+  });
+
+  return {
+    ...segments,
+    files: normalizedFiles,
+  };
 };
 
 const buildWorkbook = ({ segments, items, includeFactoryIntegrated }) => {
   const workbook = xlsx.utils.book_new();
   const warnings = new Set();
   const { byId, byFileRow } = buildItemMaps(items);
+  const normalizedSegments = normalizeSegments(segments);
 
   const flattened = [];
-  for (const fileEntry of segments?.files ?? []) {
+  for (const fileEntry of normalizedSegments?.files ?? []) {
     const file = fileEntry?.file ?? "";
     const fileSegments = Array.isArray(fileEntry?.segments) ? fileEntry.segments : [];
     for (const segment of fileSegments) {
