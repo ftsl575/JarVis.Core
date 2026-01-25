@@ -16,6 +16,7 @@ npm run handoff
 npm run lint
 npm run test
 npm run canon:hpe
+npm run diag:hpe:segments
 ```
 
 The `canon:hpe` command expects a folder of `.xlsx` files and writes exports to `out/`:
@@ -23,6 +24,18 @@ The `canon:hpe` command expects a folder of `.xlsx` files and writes exports to 
 - `out/canonical.jsonl`
 - `out/items.jsonl`
 - `out/summary.json`
+
+## HPE segmentation diagnostics (post-items)
+
+Run the diagnostic segmenter on the current `out/items.jsonl`:
+
+```bash
+npm run diag:hpe:segments -- --mode permissive
+```
+
+Output:
+
+- `out/segments.json`
 
 ## HPE invoice generation
 

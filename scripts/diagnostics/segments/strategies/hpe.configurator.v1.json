@@ -1,0 +1,17 @@
+{
+  "strategy_id": "hpe.configurator.v1",
+  "anchor_patterns": [
+    "Configure-to-order Server",
+    "\\bCTO\\b",
+    "CTO Svr",
+    "Configure to order Server",
+    "Configure-to-order Svr",
+    "Configure to order Svr"
+  ],
+  "multi_anchor_thresholds": {
+    "min_rows_between_anchors": 3
+  },
+  "defaults": {
+    "default_mode": "permissive"
+  }
+}
