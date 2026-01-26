@@ -23,7 +23,9 @@ const buildItemLookup = (items) => {
 };
 
 const resolveSegmentItems = ({ segment, itemLookup }) => {
-  return segment.rows.map((row, index) => {
+  const rows = Array.isArray(segment.rows) && segment.rows.length > 0 ? segment.rows : [segment.anchor];
+
+  return rows.map((row, index) => {
     const ref = row?.source_ref;
     if (!ref) {
       throw new Error(`Missing source_ref for segment ${segment.segment_id} row ${index}`);
