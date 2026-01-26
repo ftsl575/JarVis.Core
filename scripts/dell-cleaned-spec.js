@@ -410,29 +410,57 @@ const buildWorkbook = ({ segment, items, file }) => {
   return workbook;
 };
 
-const main = async () => {
-  const inputPath = process.argv[2] ? path.resolve(process.argv[2]) : null;
-  if (!inputPath) {
-    usage();
-    process.exitCode = 1;
-    return;
+const discoverSegmentInputs = async () => {
+  const outDir = path.resolve("out");
+  try {
+    const entries = await fs.promises.readdir(outDir);
+    return entries
+      .filter((entry) => entry.startsWith("dell_segment_") && entry.endsWith(".json"))
+      .sort((a, b) => a.localeCompare(b))
+      .map((entry) => path.join(outDir, entry));
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
+};
+
+const processSegmentInput = async (inputPath) => {
+  const raw = await fs.promises.readFile(inputPath, "utf8");
+  const payload = JSON.parse(raw);
+  const { segment, items, file } = resolveSegmentData(payload);
+  const segmentId = resolveSegmentId(segment, inputPath);
+  if (!segmentId) {
+    throw new Error("Unable to resolve segment id from input file name or payload.");
   }
 
+  const workbook = buildWorkbook({ segment, items, file });
+  const outputDir = path.dirname(inputPath);
+  const outputPath = path.join(outputDir, `cleaned_spec.dell.segment_${segmentId}.xlsx`);
+
+  await fs.promises.mkdir(outputDir, { recursive: true });
+  xlsx.writeFile(workbook, outputPath);
+};
+
+const main = async () => {
+  const inputPath = process.argv[2] ? path.resolve(process.argv[2]) : null;
   try {
-    const raw = await fs.promises.readFile(inputPath, "utf8");
-    const payload = JSON.parse(raw);
-    const { segment, items, file } = resolveSegmentData(payload);
-    const segmentId = resolveSegmentId(segment, inputPath);
-    if (!segmentId) {
-      throw new Error("Unable to resolve segment id from input file name or payload.");
+    if (inputPath) {
+      await processSegmentInput(inputPath);
+      return;
     }
 
-    const workbook = buildWorkbook({ segment, items, file });
-    const outputDir = path.dirname(inputPath);
-    const outputPath = path.join(outputDir, `cleaned_spec.dell.segment_${segmentId}.xlsx`);
+    const inputs = await discoverSegmentInputs();
+    if (inputs.length === 0) {
+      console.error("No Dell segment JSON files found at out/dell_segment_*.json.");
+      process.exitCode = 1;
+      return;
+    }
 
-    await fs.promises.mkdir(outputDir, { recursive: true });
-    xlsx.writeFile(workbook, outputPath);
+    for (const input of inputs) {
+      await processSegmentInput(input);
+    }
   } catch (error) {
     console.error("Failed to generate cleaned spec for Dell segment.");
     console.error(formatError(error));
