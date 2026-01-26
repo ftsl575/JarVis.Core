@@ -322,16 +322,14 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
   const selectedIndex =
     anchorIndex >= 0
       ? anchorIndex
-      : result.canonicalRecords.findIndex(
-          (line) => line.line_type === "item" && line.parsed.is_anchor_candidate,
-        );
+      : result.canonicalRecords.findIndex((line) => line.parsed.is_anchor_candidate);
 
   if (selectedIndex >= 0) {
     result.canonicalRecords[selectedIndex].parsed.is_anchor = true;
   }
 
   for (const line of result.canonicalRecords) {
-    if (line.line_type !== "item") {
+    if (line.line_type !== "item" && !line.parsed.is_anchor) {
       continue;
     }
     const deviceType = classifyDeviceType({
@@ -339,11 +337,13 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
       vendor: line.source.vendor,
       partNumber: line.parsed.product_number,
     });
+    const resolvedQty =
+      Number.isFinite(line.parsed.qty) && line.parsed.qty > 0 ? line.parsed.qty : 1;
     result.itemsExported += 1;
     result.itemRecords.push({
       id: line.id,
       source: line.source,
-      qty: line.parsed.qty,
+      qty: resolvedQty,
       product_number: line.parsed.product_number,
       description: line.parsed.description,
       device_type: deviceType.device_type,
