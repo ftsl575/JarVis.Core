@@ -536,12 +536,12 @@ const containsKeyword = (normalizedText, keyword) =>
   normalizedText.includes(normalizeWord(keyword));
 
 const isNonPhysical = (item, deviceType, lineType) => {
-  const normalized = buildNormalizedText(deviceType, lineType, item?.description);
+  const normalized = buildNormalizedText(deviceType, lineType);
   return NON_PHYSICAL_KEYWORDS.some((keyword) => containsKeyword(normalized, keyword));
 };
 
 const isLicenseLike = (item, deviceType, lineType) => {
-  const normalized = buildNormalizedText(deviceType, lineType, item?.description);
+  const normalized = buildNormalizedText(deviceType, lineType);
   return containsKeyword(normalized, "license") || containsKeyword(normalized, "software");
 };
 
