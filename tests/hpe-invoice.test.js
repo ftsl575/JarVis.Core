@@ -189,17 +189,8 @@ test("generates invoice with expected line count", async () => {
     assert.ok(header);
     assert.ok(header.deviceTypeCol);
 
-    let lineCount = 0;
-    for (let i = 1; i <= items.length; i += 1) {
-      const cell = outputSheet[
-        xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: header.descriptionCol - 1 })
-      ];
-      if (cell?.v) {
-        lineCount += 1;
-      }
-    }
-
-    assert.equal(lineCount, items.length);
+    const partialRow = findRowWithValue(outputSheet, "CFG 01 (PARTIAL)");
+    assert.ok(partialRow);
 
     const firstItemRow = findRowWithValue(outputSheet, "Widget");
     const secondItemRow = findRowWithValue(outputSheet, "Gadget");
@@ -280,18 +271,11 @@ test("filters factory integrated rows from invoice output", async () => {
     const header = findHeaderRow(outputSheet);
     assert.ok(header);
 
-    let lineCount = 0;
-    for (let i = 1; i <= items.length; i += 1) {
-      const cell = outputSheet[
-        xlsx.utils.encode_cell({ r: header.rowIndex + i - 1, c: header.descriptionCol - 1 })
-      ];
-      if (cell?.v) {
-        lineCount += 1;
-        assert.ok(!/factory integrated/i.test(String(cell.v)));
-      }
-    }
-
-    assert.equal(lineCount, 1);
+    const partialRow = findRowWithValue(outputSheet, "CFG 01 (PARTIAL)");
+    assert.ok(partialRow);
+    assert.ok(findRowWithValue(outputSheet, "Standard Adapter"));
+    assert.equal(findRowWithValue(outputSheet, "Factory Integrated Controller"), null);
+    assert.equal(findRowWithValue(outputSheet, "factory integrated module"), null);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
@@ -491,7 +475,10 @@ test("places terms and bank blocks after items without duplicating the header", 
     assert.equal(countCellsWithValue(outputSheet, "Part Number"), 1);
 
     const headerRow = headerRows[0];
-    const lastItemRow = headerRow + items.length;
+    const itemRows = ["Primary", "Secondary", "Tertiary"].map((value) =>
+      findRowWithValue(outputSheet, value)
+    );
+    const lastItemRow = Math.max(...itemRows.filter(Boolean));
     const termsRow = findRowWithValue(outputSheet, "[Terms & Conditions:]");
     const bankRow = findRowWithValue(outputSheet, "[Bank Account]");
 
@@ -628,6 +615,152 @@ test("reads cleaned spec with qty components header", async () => {
     assert.equal(items[0].partNumber, "PN-100");
     assert.equal(items[0].description, "Server Bundle");
     assert.equal(items[0].qty, 2);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("splits invoice into configuration sections and filters non-physical items", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-sections-"));
+
+  try {
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+    const segmentsPath = path.join(tempDir, "segments.json");
+
+    const templateRows = [
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "", "", "", "", ""],
+      ["", "#", "Part Number", "Description", "Device Type", "Qty components"],
+      ["", "", "", "", "", ""],
+    ];
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    const itemsLayer = [
+      {
+        id: "item-1",
+        product_number: "SRV-1",
+        description: "Server Alpha",
+        qty: 2,
+        device_type: "Server",
+        line_type: "anchor",
+      },
+      {
+        id: "item-2",
+        product_number: "LIC-1",
+        description: "Software License electronic",
+        qty: 2,
+        device_type: "Software",
+        line_type: "license",
+      },
+      {
+        id: "item-3",
+        product_number: "LIC-2",
+        description: "License Certificate kit",
+        qty: 2,
+        device_type: "Software",
+        line_type: "license",
+      },
+      {
+        id: "item-4",
+        product_number: "SUP-1",
+        description: "Support Subscription",
+        qty: 2,
+        device_type: "Support",
+        line_type: "support",
+      },
+      {
+        id: "item-5",
+        product_number: "DRV-1",
+        description: "Drive Kit",
+        qty: 2,
+        device_type: "Storage",
+        line_type: "component",
+      },
+      {
+        id: "item-6",
+        product_number: "SRV-2",
+        description: "Server Beta",
+        qty: 1,
+        device_type: "Server",
+        line_type: "anchor",
+      },
+      {
+        id: "item-7",
+        product_number: "USB-1",
+        description: "USB license keycard",
+        qty: 1,
+        device_type: "License",
+        line_type: "license",
+      },
+    ];
+
+    const items = itemsLayer.map((record, index) => ({
+      lineNo: index + 1,
+      itemId: record.id,
+      partNumber: record.product_number,
+      description: record.description,
+      qty: record.qty,
+      deviceType: record.device_type,
+      lineType: record.line_type,
+      vendor: "HPE",
+    }));
+
+    const segmentsPayload = {
+      files: [
+        {
+          file: "input.xlsx",
+          segments: [
+            {
+              segment_id: 1,
+              is_partial: false,
+              server_anchor: { description: "Server Alpha", qty: 2 },
+              items: [
+                { item_id: "item-1" },
+                { item_id: "item-2" },
+                { item_id: "item-3" },
+                { item_id: "item-4" },
+                { item_id: "item-5" },
+              ],
+            },
+            {
+              segment_id: 2,
+              is_partial: false,
+              server_anchor: { description: "Server Beta", qty: 1 },
+              items: [{ item_id: "item-6" }, { item_id: "item-7" }],
+            },
+          ],
+        },
+      ],
+    };
+    await fs.writeFile(segmentsPath, JSON.stringify(segmentsPayload, null, 2), "utf8");
+
+    await generateInvoiceXlsx({
+      templatePath,
+      items,
+      outPath,
+      itemsLayer,
+      segmentsPath,
+    });
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+
+    const cfgOneRow = findRowWithValue(outputSheet, "CFG 01 - Server Alpha / Qty 2");
+    const cfgTwoRow = findRowWithValue(outputSheet, "CFG 02 - Server Beta / Qty 1");
+    assert.ok(cfgOneRow);
+    assert.ok(cfgTwoRow);
+    assert.ok(cfgOneRow < cfgTwoRow);
+
+    assert.ok(findRowWithValue(outputSheet, "Server Alpha"));
+    assert.ok(findRowWithValue(outputSheet, "Drive Kit"));
+    assert.ok(findRowWithValue(outputSheet, "License Certificate kit"));
+    assert.ok(findRowWithValue(outputSheet, "Server Beta"));
+    assert.ok(findRowWithValue(outputSheet, "USB license keycard"));
+    assert.equal(findRowWithValue(outputSheet, "Software License electronic"), null);
+    assert.equal(findRowWithValue(outputSheet, "Support Subscription"), null);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
