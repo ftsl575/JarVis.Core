@@ -163,3 +163,81 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
 
   await fs.rm(tempDir, { recursive: true, force: true });
 });
+
+test("dell stage 3 materializes anchor-only segments", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-materialize-anchor-only-"));
+  const outDir = path.join(tempDir, "out");
+  await fs.mkdir(outDir, { recursive: true });
+
+  const items = [
+    {
+      id: "dl_anchor.xlsx::BOM::10",
+      source: { vendor: "Dell", file: "dl_anchor.xlsx", sheet: "BOM", row_index: 10 },
+      qty: 1,
+      product_number: "R650",
+      description: "PowerEdge R650 Server",
+      device_type: "Server",
+      line_type: "anchor",
+      raw_ref: { file: "dl_anchor.xlsx", sheet: "BOM", row_index: 10 },
+    },
+  ];
+
+  const segmentsPayload = {
+    vendor: "dell",
+    input_key: "dl_anchor.xlsx",
+    segments: [
+      {
+        segment_id: "dell_anchor_s001",
+        anchor: { sheet: "BOM", row_index: 10, source_ref: "dl_anchor.xlsx::BOM::10" },
+        rows: [{ sheet: "BOM", row_index: 10, source_ref: "dl_anchor.xlsx::BOM::10" }],
+        counts: { items: 1, anchors: 1 },
+      },
+    ],
+    meta: { schema_version: 1 },
+  };
+
+  const itemsPath = path.join(outDir, "items.jsonl");
+  const segmentsPath = path.join(outDir, "segments.dell.json");
+
+  const itemsJsonl = toJsonl(items);
+  const segmentsJson = `${JSON.stringify(segmentsPayload, null, 2)}\n`;
+
+  await fs.writeFile(itemsPath, itemsJsonl, "utf8");
+  await fs.writeFile(segmentsPath, segmentsJson, "utf8");
+
+  const itemsBefore = await fs.readFile(itemsPath, "utf8");
+  const segmentsBefore = await fs.readFile(segmentsPath, "utf8");
+
+  await materializeDellSegments({ segmentsPath, itemsPath, outDir });
+
+  const outputFiles = (await fs.readdir(outDir)).filter((name) => name.startsWith("dell_segment_"));
+  assert.deepEqual(outputFiles, ["dell_segment_dell_anchor_s001.json"]);
+
+  const output = await fs.readFile(path.join(outDir, "dell_segment_dell_anchor_s001.json"), "utf8");
+  const expected = {
+    vendor: "dell",
+    segment_id: "dell_anchor_s001",
+    anchor: { sheet: "BOM", row_index: 10, source_ref: "dl_anchor.xlsx::BOM::10" },
+    items: [
+      {
+        source_ref: "dl_anchor.xlsx::BOM::10",
+        qty: 1,
+        product_number: "R650",
+        description: "PowerEdge R650 Server",
+        device_type: "Server",
+        line_type: "anchor",
+      },
+    ],
+    meta: { schema_version: 1 },
+  };
+
+  assert.equal(output, `${JSON.stringify(expected, null, 2)}\n`);
+
+  const itemsAfter = await fs.readFile(itemsPath, "utf8");
+  const segmentsAfter = await fs.readFile(segmentsPath, "utf8");
+
+  assert.equal(itemsAfter, itemsBefore);
+  assert.equal(segmentsAfter, segmentsBefore);
+
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
