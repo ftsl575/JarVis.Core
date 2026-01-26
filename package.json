@@ -8,6 +8,7 @@
     "test": "node --test",
     "check:no-binaries": "node scripts/check-no-binaries.js",
     "canon:hpe": "node adapters/hpe/index.js samples/hpe --out out",
+    "canon:dell:baseline": "node adapters/dell/index.js \"C:\\\\Users\\\\G\\\\Desktop\\\\JarVis\\\\JarVis.Core\\\\diag\\\\_batch_inputs\\\\dl1.xlsx\" --out \"C:\\\\Users\\\\G\\\\Desktop\\\\JarVis\\\\JarVis.Core\\\\out\"",
     "docs:hpe:cleaned-spec": "node scripts/docs-hpe-cleaned-spec.js",
     "docs:hpe:invoice": "node scripts/docs-hpe-invoice.js",
     "docs:hpe:clean": "node scripts/docs-hpe-clean.js",
