@@ -304,7 +304,8 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
       defaultQty,
     });
 
-    if (line.parsed.description && isDellAnchorCandidate(line.parsed.description)) {
+    const anchorText = line.parsed.description || line.raw.text;
+    if (anchorText && isDellAnchorCandidate(anchorText)) {
       line.parsed.is_anchor_candidate = true;
     }
 
