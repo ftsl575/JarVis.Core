@@ -29,9 +29,11 @@ const normalizeHeaderText = (value) =>
     .toLowerCase();
 
 const headerVariants = {
-  qty: new Set(["qty", "quantity", "qty components"]),
-  productNumber: new Set(["part number", "product number", "sku", "product #", "part #"]),
-  description: new Set(["description", "product description", "item description"]),
+  qty: new Set(["qty"]),
+  qtyFallback: new Set(["product qty"]),
+  productNumber: new Set(["skus"]),
+  description: new Set(["option name"]),
+  descriptionFallback: new Set(["product name"]),
 };
 
 const findHeader = (sheet, range) => {
@@ -44,6 +46,8 @@ const findHeader = (sheet, range) => {
       qty: null,
       productNumber: null,
       description: null,
+      descriptionFallback: null,
+      qtyFallback: null,
       matchCount: 0,
     };
 
@@ -57,6 +61,10 @@ const findHeader = (sheet, range) => {
         matches.qty = c + 1;
         matches.matchCount += 1;
       }
+      if (!matches.qtyFallback && headerVariants.qtyFallback.has(value)) {
+        matches.qtyFallback = c + 1;
+        matches.matchCount += 1;
+      }
       if (!matches.productNumber && headerVariants.productNumber.has(value)) {
         matches.productNumber = c + 1;
         matches.matchCount += 1;
@@ -66,13 +74,17 @@ const findHeader = (sheet, range) => {
         matches.description = c + 1;
         matches.matchCount += 1;
       }
+      if (!matches.descriptionFallback && headerVariants.descriptionFallback.has(value)) {
+        matches.descriptionFallback = c + 1;
+        matches.matchCount += 1;
+      }
     }
 
     if (matches.matchCount > 0 && (!bestMatch || matches.matchCount > bestMatch.matchCount)) {
       bestMatch = matches;
     }
 
-    if (matches.qty && matches.description) {
+    if (matches.qty && (matches.description || matches.descriptionFallback)) {
       bestMatch = matches;
       break;
     }
@@ -81,7 +93,13 @@ const findHeader = (sheet, range) => {
   if (!bestMatch) {
     return {
       headerRowIndex: null,
-      columnMap: { qty: null, product_number: null, description: null },
+      columnMap: {
+        qty: null,
+        qty_fallback: null,
+        product_number: null,
+        description: null,
+        description_fallback: null,
+      },
       matchCount: 0,
     };
   }
@@ -90,8 +108,10 @@ const findHeader = (sheet, range) => {
     headerRowIndex: bestMatch.rowIndex,
     columnMap: {
       qty: bestMatch.qty,
+      qty_fallback: bestMatch.qtyFallback,
       product_number: bestMatch.productNumber,
       description: bestMatch.description,
+      description_fallback: bestMatch.descriptionFallback,
     },
     matchCount: bestMatch.matchCount,
   };
@@ -139,21 +159,37 @@ const toLine = ({
   columnMap,
   source,
   range,
-  defaultQty,
 }) => {
   const qtyValue = getCellFromRow(cells, range, columnMap.qty);
+  const qtyFallbackValue = getCellFromRow(cells, range, columnMap.qty_fallback);
   const productValue = getCellFromRow(cells, range, columnMap.product_number);
   const descriptionValue = getCellFromRow(cells, range, columnMap.description);
+  const descriptionFallbackValue = getCellFromRow(
+    cells,
+    range,
+    columnMap.description_fallback,
+  );
 
   const parsedQty = parseQty(qtyValue);
+  const fallbackQty = parseQty(qtyFallbackValue);
   const productNumber = productValue ? cellToString(productValue) : null;
-  const description = descriptionValue ? cellToString(descriptionValue) : null;
-  const resolvedQty = parsedQty ?? (defaultQty ? 1 : null);
+  const description =
+    descriptionValue && cellToString(descriptionValue)
+      ? cellToString(descriptionValue)
+      : descriptionFallbackValue && cellToString(descriptionFallbackValue)
+        ? cellToString(descriptionFallbackValue)
+        : null;
+  const resolvedQty = parsedQty ?? fallbackQty;
 
+  const hasItemContent = Boolean(description || productNumber);
   let lineType = "unknown";
-  if (resolvedQty !== null && resolvedQty > 0 && (description || productNumber)) {
+  let finalQty = resolvedQty;
+  if (hasItemContent && (finalQty === null || finalQty === undefined)) {
+    finalQty = 1;
+  }
+  if (finalQty !== null && finalQty > 0 && hasItemContent) {
     lineType = "item";
-  } else if (rawText && resolvedQty === null) {
+  } else if (rawText && (finalQty === null || finalQty === undefined)) {
     lineType = "header";
   }
 
@@ -170,7 +206,7 @@ const toLine = ({
       text: rawText,
     },
     parsed: {
-      qty: resolvedQty,
+      qty: finalQty,
       product_number: productNumber || null,
       description: description || null,
     },
@@ -256,18 +292,16 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
 
   const { headerRowIndex, columnMap } = header;
 
-  if (!columnMap.qty) {
+  if (!columnMap.qty && !columnMap.qty_fallback) {
     recordWarning("MISSING_COLUMN_QTY");
   }
-  if (!columnMap.description) {
+  if (!columnMap.description && !columnMap.description_fallback) {
     recordWarning("MISSING_COLUMN_DESCRIPTION");
   }
 
   const startRowIndex = headerRowIndex ? headerRowIndex + 1 : range.s.r + 1;
   const width = range.e.c - range.s.c + 1;
   const relativeFile = inputDir ? path.relative(inputDir, inputPath) : path.basename(inputPath);
-  const defaultQty = !columnMap.qty;
-
   for (let r = startRowIndex - 1; r <= range.e.r; r += 1) {
     const rowIndex = r + 1;
     result.linesTotal += 1;
@@ -302,7 +336,6 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
       columnMap,
       source,
       range,
-      defaultQty,
     });
 
     const anchorText = line.parsed.description || line.raw.text;
