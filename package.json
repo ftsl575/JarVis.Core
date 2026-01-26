@@ -12,6 +12,7 @@
     "docs:hpe:cleaned-spec": "node scripts/docs-hpe-cleaned-spec.js",
     "docs:hpe:invoice": "node scripts/docs-hpe-invoice.js",
     "docs:hpe:clean": "node scripts/docs-hpe-clean.js",
+    "docs:dell:cleaned_spec": "node scripts/dell-cleaned-spec.js",
     "diag:hpe:batch": "node scripts/diagnostics/hpe-batch.js",
     "diag:hpe:batch:pack": "node scripts/diagnostics/hpe-batch-pack.js",
     "diag:hpe:segments": "node scripts/diagnostics/hpe-segments.js",
