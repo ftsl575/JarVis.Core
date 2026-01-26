@@ -109,6 +109,8 @@ const TRACKING_DEVICE_TYPES = new Set([
   "subscription",
   "enablement",
   "warranty",
+  "software",
+  "configuration",
 ]);
 const TRACKING_KEYWORDS = [
   "support",
@@ -120,6 +122,8 @@ const TRACKING_KEYWORDS = [
   "enablement",
   "registration",
   "entitlement",
+  "software",
+  "configuration",
 ];
 
 const isTrackingRow = ({ description, deviceType }) => {
@@ -129,6 +133,86 @@ const isTrackingRow = ({ description, deviceType }) => {
   }
   const normalizedDescription = normalizeDescription(description).toLowerCase();
   return TRACKING_KEYWORDS.some((keyword) => normalizedDescription.includes(keyword));
+};
+
+const PHYSICAL_DEVICE_TYPES = new Set([
+  "server",
+  "blade chassis",
+  "compute",
+  "storage",
+  "cpu",
+  "ram",
+  "memory",
+  "gpu",
+  "network",
+  "hdd",
+  "ssd",
+  "nvme",
+  "disk",
+  "drive",
+  "drive cage",
+  "disk enclosure",
+  "tape library",
+  "backplane",
+  "raid controller",
+  "controller",
+  "network adapter",
+  "network interface card",
+  "nic",
+  "hba",
+  "psu",
+  "power supply",
+  "power cord",
+  "cable",
+  "rail kit",
+  "fan",
+  "cooling module",
+  "riser kit",
+  "bezel",
+  "transceiver",
+  "network switch",
+  "router",
+  "firewall",
+  "fabric interconnect",
+  "hardware (accessory)",
+  "battery",
+  "pdu",
+]);
+const NON_PHYSICAL_DEVICE_TYPES = new Set([
+  "software",
+  "license",
+  "support",
+  "subscription",
+  "service",
+  "enablement",
+  "warranty",
+  "configuration",
+  "tracking",
+]);
+const NON_PHYSICAL_LINE_TYPES = new Set([
+  "support",
+  "subscription",
+  "license",
+  "service",
+  "enablement",
+  "configuration",
+  "fio",
+  "tracking",
+]);
+
+const isPhysicalRow = ({ description, deviceType, lineType }) => {
+  const normalizedDeviceType = normalizeDescription(deviceType).toLowerCase();
+  const normalizedLineType = normalizeDescription(lineType).toLowerCase();
+  if (NON_PHYSICAL_LINE_TYPES.has(normalizedLineType)) {
+    return false;
+  }
+  if (NON_PHYSICAL_DEVICE_TYPES.has(normalizedDeviceType)) {
+    return false;
+  }
+  if (isTrackingRow({ description, deviceType })) {
+    return false;
+  }
+  return PHYSICAL_DEVICE_TYPES.has(normalizedDeviceType);
 };
 
 const buildSegmentTableRows = ({
@@ -141,6 +225,7 @@ const buildSegmentTableRows = ({
   const items = Array.isArray(segment?.items) ? segment.items : [];
   const anchorRef = items.find((item) => item?.is_anchor);
   const rows = [];
+  let anchorRow = null;
   const serverCount = segment?.server_anchor?.qty ?? null;
 
   const shouldIncludeRow = (ref) => {
@@ -175,10 +260,8 @@ const buildSegmentTableRows = ({
     const description =
       anchorItem?.description ?? anchorRef?.description ?? segment.server_anchor?.description ?? "";
     rows.push({
-      isTracking: isTrackingRow({
-        description,
-        deviceType: anchorItem?.device_type ?? "",
-      }),
+      isAnchor: true,
+      isPhysical: true,
       values: [
         1,
         normalizeNumber(segment.server_anchor?.qty ?? ""),
@@ -195,6 +278,7 @@ const buildSegmentTableRows = ({
         anchorItem?.id ?? anchorRef?.item_id ?? "",
       ],
     });
+    anchorRow = rows[rows.length - 1];
   }
 
   for (const ref of nonAnchorRows) {
@@ -209,9 +293,11 @@ const buildSegmentTableRows = ({
         : item?.qty ?? ref?.qty ?? "";
     const description = item?.description ?? ref?.description ?? "";
     rows.push({
-      isTracking: isTrackingRow({
+      isAnchor: false,
+      isPhysical: isPhysicalRow({
         description,
         deviceType: item?.device_type ?? "",
+        lineType: item?.line_type ?? "",
       }),
       values: [
         normalizeNumber(perServerQty),
@@ -229,15 +315,21 @@ const buildSegmentTableRows = ({
   }
 
   const physical = [];
-  const tracking = [];
+  const nonPhysical = [];
   for (const row of rows) {
-    if (row.isTracking) {
-      tracking.push(row.values);
-    } else {
+    if (row.isAnchor) {
+      continue;
+    }
+    if (row.isPhysical) {
       physical.push(row.values);
+    } else {
+      nonPhysical.push(row.values);
     }
   }
-  return [...physical, ...tracking];
+  if (anchorRow) {
+    return [anchorRow.values, ...physical, ...nonPhysical];
+  }
+  return [...physical, ...nonPhysical];
 };
 
 const normalizeWorksheetView = (sheet, rows) => {

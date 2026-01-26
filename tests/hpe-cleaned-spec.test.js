@@ -84,6 +84,28 @@ test("docs:hpe:cleaned-spec generates sheets and hides Factory Integrated rows b
 
     const tableRows = rows1.slice(tableHeaderIndex + 1).filter((row) => row[3]);
     const descriptions = tableRows.map((row) => row[3]);
+    const expectedDescriptions = [
+      "Server Model A",
+      "Memory DIMM",
+      "Network Adapter",
+      "Onsite Service Plan",
+      "Warranty registration kit",
+    ];
+    assert.equal(tableRows.length, expectedDescriptions.length);
+    assert.deepEqual(
+      [...new Set(descriptions)].sort(),
+      [...expectedDescriptions].sort()
+    );
+    assert.equal(descriptions[0], "Server Model A");
+    const physicalDescriptions = ["Server Model A", "Memory DIMM", "Network Adapter"];
+    const nonPhysicalDescriptions = ["Onsite Service Plan", "Warranty registration kit"];
+    const physicalIndexes = physicalDescriptions.map((desc) => descriptions.indexOf(desc));
+    const nonPhysicalIndexes = nonPhysicalDescriptions.map((desc) =>
+      descriptions.indexOf(desc)
+    );
+    physicalIndexes.forEach((index) => assert.ok(index >= 0));
+    nonPhysicalIndexes.forEach((index) => assert.ok(index >= 0));
+    assert.ok(Math.max(...physicalIndexes) < Math.min(...nonPhysicalIndexes));
     assert.deepEqual(descriptions, [
       "Server Model A",
       "Memory DIMM",
