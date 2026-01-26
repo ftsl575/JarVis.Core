@@ -765,3 +765,83 @@ test("splits invoice into configuration sections and filters non-physical items"
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test("includes physical enablement hardware and filters service/license items by fields", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "hpe-invoice-physical-filter-"));
+
+  try {
+    const templatePath = path.join(tempDir, "template.xlsx");
+    const outPath = path.join(tempDir, "invoice.xlsx");
+
+    const templateRows = [
+      ["", "", "", "", "", ""],
+      ["", "#", "Part Number", "Description", "Device Type", "Qty components"],
+      ["", "", "", "", "", ""],
+    ];
+    const templateWorkbook = createWorkbook(templateRows, "Invoice");
+    xlsx.writeFile(templateWorkbook, templatePath);
+
+    const itemsLayer = [
+      {
+        id: "item-1",
+        product_number: "P48918-B21",
+        description: "Enablement Cable Kit",
+        qty: 1,
+        device_type: "Server",
+        line_type: "component",
+      },
+      {
+        id: "item-2",
+        product_number: "HA113A1",
+        description: "Install / Service",
+        qty: 1,
+        device_type: "Service",
+        line_type: "service",
+      },
+      {
+        id: "item-3",
+        product_number: "LIC-1",
+        description: "Software License electronic",
+        qty: 1,
+        device_type: "Software",
+        line_type: "license",
+      },
+      {
+        id: "item-4",
+        product_number: "LIC-2",
+        description: "License Certificate kit",
+        qty: 1,
+        device_type: "Software",
+        line_type: "license",
+      },
+    ];
+
+    const items = itemsLayer.map((record, index) => ({
+      lineNo: index + 1,
+      itemId: record.id,
+      partNumber: record.product_number,
+      description: record.description,
+      qty: record.qty,
+      deviceType: record.device_type,
+      lineType: record.line_type,
+      vendor: "HPE",
+    }));
+
+    await generateInvoiceXlsx({
+      templatePath,
+      items,
+      outPath,
+      itemsLayer,
+    });
+
+    const outputWorkbook = xlsx.readFile(outPath);
+    const outputSheet = outputWorkbook.Sheets[outputWorkbook.SheetNames[0]];
+
+    assert.ok(findRowWithValue(outputSheet, "Enablement Cable Kit"));
+    assert.ok(findRowWithValue(outputSheet, "License Certificate kit"));
+    assert.equal(findRowWithValue(outputSheet, "Install / Service"), null);
+    assert.equal(findRowWithValue(outputSheet, "Software License electronic"), null);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
