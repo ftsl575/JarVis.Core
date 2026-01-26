@@ -222,6 +222,8 @@ test("segments group adjacent CTO variants into a single segment", async () => {
     const segmentItemIds = segment.items.map((item) => item.item_id);
     assert.ok(segmentItemIds.includes("adjacent.xlsx::BOM::10"));
     assert.ok(segmentItemIds.includes("adjacent.xlsx::BOM::11"));
+    assert.ok(segmentItemIds.includes("adjacent.xlsx::BOM::13"));
+    assert.ok(segmentItemIds.includes("adjacent.xlsx::BOM::14"));
 
     const groupedFindings = fileEntry.findings.filter((finding) => finding.code === "ADJACENT_ANCHORS_GROUPED");
     assert.equal(groupedFindings.length, 1);
