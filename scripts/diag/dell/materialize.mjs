@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { readItemsJsonl } from "./_lib/readItemsJsonl.mjs";
 
 const readSegmentsJson = async (filePath) => {
@@ -87,7 +88,15 @@ const run = async () => {
   });
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isDirectRun = () => {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+  return import.meta.url === pathToFileURL(path.resolve(entry)).href;
+};
+
+if (isDirectRun()) {
   run().catch((error) => {
     console.error(error);
     process.exitCode = 1;
