@@ -217,28 +217,27 @@ const validateMultiAnchor = ({ file, anchors, threshold, findings }) => {
   }
 };
 
-const groupAnchors = ({ anchors, windowRows, variantRegexes }) => {
+const groupAnchors = ({ anchors }) => {
   const groups = [];
   let currentGroup = null;
+  let previousAnchor = null;
 
   for (const anchor of anchors) {
     if (!currentGroup) {
       currentGroup = { primary: anchor, secondaries: [] };
+      previousAnchor = anchor;
       continue;
     }
 
-    const primaryRow = normalizeRow(currentGroup.primary.item);
-    const candidateRow = normalizeRow(anchor.item);
-    const distance =
-      primaryRow !== null && candidateRow !== null ? candidateRow - primaryRow : anchor.index - currentGroup.primary.index;
-    const matchesVariant = isAnchorDescription(anchor.item?.description, variantRegexes);
+    const isConsecutive = anchor.index === (previousAnchor?.index ?? -1) + 1;
 
-    if (distance <= windowRows && matchesVariant) {
+    if (isConsecutive) {
       currentGroup.secondaries.push(anchor);
     } else {
       groups.push(currentGroup);
       currentGroup = { primary: anchor, secondaries: [] };
     }
+    previousAnchor = anchor;
   }
 
   if (currentGroup) {
@@ -303,11 +302,7 @@ export const segmentHpeItems = async ({
         context: { file },
       });
     } else {
-      const anchorGroups = groupAnchors({
-        anchors,
-        windowRows: anchorGroupingConfig.windowRows,
-        variantRegexes: anchorGroupingConfig.variantRegexes,
-      });
+      const anchorGroups = groupAnchors({ anchors });
 
       anchorGroups.forEach((group, idx) => {
         const start = group.primary.index;
