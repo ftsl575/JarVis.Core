@@ -110,6 +110,10 @@ test("dell stage 1 outputs remain byte-identical for a sample workbook", async (
     assert.equal(canonical, fixture.canonical);
     assert.equal(items, fixture.items);
     assert.equal(summary, fixture.summary);
+
+    const firstItem = JSON.parse(items.trim().split("\n")[0]);
+    assert.ok(firstItem.description);
+    assert.ok(firstItem.product_number);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
