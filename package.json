@@ -15,7 +15,8 @@
     "diag:hpe:batch": "node scripts/diagnostics/hpe-batch.js",
     "diag:hpe:batch:pack": "node scripts/diagnostics/hpe-batch-pack.js",
     "diag:hpe:segments": "node scripts/diagnostics/hpe-segments.js",
-    "diag:dell:segments": "node scripts/diagnostics/dell-segments.js"
+    "diag:dell:segments": "node scripts/diagnostics/dell-segments.js",
+    "diag:dell:materialize": "node scripts/diag/dell/materialize.mjs"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
