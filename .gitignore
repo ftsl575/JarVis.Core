@@ -7,6 +7,7 @@ pnpm-debug.log*
 
 # Output
 out/
+diag/
 logs/
 *.xlsx
 *.xls
@@ -24,6 +25,7 @@ logs/
 *_invoice.xlsx
 !samples/hpe/**
 !samples/hpe_docs/**
+samples/hpe/input.xlsx
 
 # Env
 .env
