@@ -14,7 +14,8 @@
     "docs:hpe:clean": "node scripts/docs-hpe-clean.js",
     "diag:hpe:batch": "node scripts/diagnostics/hpe-batch.js",
     "diag:hpe:batch:pack": "node scripts/diagnostics/hpe-batch-pack.js",
-    "diag:hpe:segments": "node scripts/diagnostics/hpe-segments.js"
+    "diag:hpe:segments": "node scripts/diagnostics/hpe-segments.js",
+    "diag:dell:segments": "node scripts/diagnostics/dell-segments.js"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
