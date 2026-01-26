@@ -22,11 +22,16 @@ const cellToString = (value) => {
   return String(value);
 };
 
-const headerMatchers = {
-  qty: /\b(qty|quantity)\b/i,
-  productNumber: /\b(part|product|item)\s*(number|#|no\.?|num)\b/i,
-  sku: /\bsku\b/i,
-  description: /\b(description|desc)\b/i,
+const normalizeHeaderText = (value) =>
+  cellToString(value)
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
+const headerVariants = {
+  qty: new Set(["qty", "quantity", "qty components"]),
+  productNumber: new Set(["part number", "product number", "sku", "product #", "part #"]),
+  description: new Set(["description", "product description", "item description"]),
 };
 
 const findHeader = (sheet, range) => {
@@ -44,24 +49,20 @@ const findHeader = (sheet, range) => {
 
     for (let c = range.s.c; c <= range.e.c; c += 1) {
       const cell = sheet[xlsx.utils.encode_cell({ r, c })];
-      const value = normalizeCellValue(cell?.v);
-      if (typeof value !== "string" || !value) {
+      const value = normalizeHeaderText(cell?.v);
+      if (!value) {
         continue;
       }
-      if (!matches.qty && headerMatchers.qty.test(value)) {
+      if (!matches.qty && headerVariants.qty.has(value)) {
         matches.qty = c + 1;
         matches.matchCount += 1;
       }
-      if (!matches.productNumber && headerMatchers.productNumber.test(value)) {
+      if (!matches.productNumber && headerVariants.productNumber.has(value)) {
         matches.productNumber = c + 1;
         matches.matchCount += 1;
         continue;
       }
-      if (!matches.productNumber && headerMatchers.sku.test(value)) {
-        matches.productNumber = c + 1;
-        matches.matchCount += 1;
-      }
-      if (!matches.description && headerMatchers.description.test(value)) {
+      if (!matches.description && headerVariants.description.has(value)) {
         matches.description = c + 1;
         matches.matchCount += 1;
       }
