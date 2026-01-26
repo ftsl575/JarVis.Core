@@ -221,6 +221,7 @@ const readItemsJsonl = (itemsPath) => {
 const buildInvoiceItemsFromItemsLayer = (records) =>
   records.map((record, index) => ({
     lineNo: index + 1,
+    itemId: record?.id ?? null,
     partNumber:
       record?.product_number ??
       record?.part_number ??
@@ -230,6 +231,7 @@ const buildInvoiceItemsFromItemsLayer = (records) =>
     description: record?.description ?? "",
     qty: record?.qty ?? 0,
     deviceType: record?.device_type ?? record?.deviceType ?? "",
+    lineType: record?.line_type ?? record?.lineType ?? "",
     vendor: record?.vendor ?? "HPE",
   }));
 
@@ -320,6 +322,7 @@ const main = async () => {
     outPath,
     itemsLayer: shouldUseItemsLayer ? itemsLayerRecords : undefined,
     itemsLayerPath: shouldUseItemsLayer ? itemsLayerPath : undefined,
+    segmentsPath: path.join(path.dirname(outPath), "segments.json"),
   });
   if (result?.missingAnchors?.length) {
     console.warn(`Invoice template is missing recommended anchors: ${result.missingAnchors.join(", ")}`);
