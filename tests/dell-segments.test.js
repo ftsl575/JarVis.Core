@@ -81,12 +81,12 @@ test("dell stage 1 outputs remain byte-identical for a sample workbook", async (
   const fixture = JSON.parse(await fs.readFile(fixturePath, "utf8"));
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-stage1-"));
-  const inputPath = path.join(tempDir, "dl2.xlsx");
+  const inputPath = path.join(tempDir, "dl1.xlsx");
   const outDir = path.join(tempDir, "out");
 
   try {
     await writeWorkbook(inputPath, [
-      ["Qty", "Product #", "Description"],
+      ["Qty", "SKUs", "Option Name"],
       [2, "R740", "PowerEdge R740 Server"],
       [4, "MEM740", "Memory DIMM"],
     ]);
@@ -112,7 +112,7 @@ test("dell stage 1 outputs remain byte-identical for a sample workbook", async (
     assert.equal(summary, fixture.summary);
 
     const firstItem = JSON.parse(items.trim().split("\n")[0]);
-    assert.ok(firstItem.description);
+    assert.ok(firstItem.line_type === "anchor" && firstItem.description);
     assert.ok(firstItem.product_number);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
