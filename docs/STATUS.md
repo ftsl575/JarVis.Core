@@ -8,6 +8,7 @@
   - Items JSONL
   - Summary JSON
 - HPE baseline v1 is documented in `docs/BASELINE.md`.
+- HPE baseline v1 (HPE v1) documents the frozen segmentation model, cleaned_spec ordering and traceability, invoice inclusion rules, and pipeline guardrails.
 - Unicode (Cyrillic) filenames are preserved end-to-end:
   - `source.file` contains the exact original filename
   - derived IDs include the original filename without garbling
