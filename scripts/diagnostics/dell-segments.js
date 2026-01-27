@@ -9,8 +9,9 @@ const usage = () => {
   console.log("Usage: node scripts/diagnostics/dell-segments.js [--items <items.jsonl>] [--out <segments.dell.json>]");
 };
 
-const resolveInputBaseName = (itemsPath) => {
-  const parsed = itemsPath ? path.parse(itemsPath) : { name: "" };
+const resolveInputBaseName = ({ inputKey, itemsPath }) => {
+  const source = inputKey || itemsPath || "";
+  const parsed = source ? path.parse(source) : { name: "" };
   const name = parsed.name ? parsed.name.toLowerCase() : "unknown";
   return name;
 };
@@ -19,7 +20,7 @@ const applyStableSegmentIds = (payload, { itemsPath }) => {
   if (!payload?.segments?.length) {
     return payload;
   }
-  const baseName = resolveInputBaseName(itemsPath);
+  const baseName = resolveInputBaseName({ inputKey: payload?.input_key, itemsPath });
   payload.segments.forEach((segment, index) => {
     segment.segment_id = `dell_${baseName}_s${String(index + 1).padStart(3, "0")}`;
   });
