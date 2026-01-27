@@ -3,8 +3,9 @@ import test from "node:test";
 import { segmentDellItems } from "./diagnostics/segments/dell-segmenter.js";
 import { applyStableSegmentIds } from "./diagnostics/dell-segments.js";
 
-const buildSource = (rowIndex) => ({
+const buildSource = (rowIndex, file) => ({
   vendor: "dell",
+  file,
   sheet: "Sheet1",
   row_index: rowIndex,
   source_ref: null,
@@ -46,9 +47,9 @@ test("dell segmentation: components-only yields zero segments", () => {
 
 test("dell segmentation: segment_id format uses input basename with zero padding", () => {
   const items = [
-    { line_type: "anchor", source: buildSource(1) },
-    { line_type: "item", source: buildSource(2) },
-    { line_type: "anchor", source: buildSource(3) },
+    { line_type: "anchor", source: buildSource(1, "dl1.xlsx") },
+    { line_type: "item", source: buildSource(2, "dl1.xlsx") },
+    { line_type: "anchor", source: buildSource(3, "dl1.xlsx") },
   ];
 
   const payload = segmentDellItems({ items });
@@ -59,13 +60,17 @@ test("dell segmentation: segment_id format uses input basename with zero padding
 });
 
 test("dell segmentation: segment_id uniqueness across different inputs", () => {
-  const items = [
-    { line_type: "anchor", source: buildSource(1) },
-    { line_type: "item", source: buildSource(2) },
+  const itemsOne = [
+    { line_type: "anchor", source: buildSource(1, "dl1.xlsx") },
+    { line_type: "item", source: buildSource(2, "dl1.xlsx") },
+  ];
+  const itemsTwo = [
+    { line_type: "anchor", source: buildSource(1, "dl2.xlsx") },
+    { line_type: "item", source: buildSource(2, "dl2.xlsx") },
   ];
 
-  const payloadOne = segmentDellItems({ items });
-  const payloadTwo = segmentDellItems({ items });
+  const payloadOne = segmentDellItems({ items: itemsOne });
+  const payloadTwo = segmentDellItems({ items: itemsTwo });
   applyStableSegmentIds(payloadOne, { itemsPath: "dl1.xlsx" });
   applyStableSegmentIds(payloadTwo, { itemsPath: "dl2.xlsx" });
 
@@ -74,8 +79,8 @@ test("dell segmentation: segment_id uniqueness across different inputs", () => {
 
 test("dell segmentation: segment_id stability across repeated runs", () => {
   const items = [
-    { line_type: "anchor", source: buildSource(1) },
-    { line_type: "item", source: buildSource(2) },
+    { line_type: "anchor", source: buildSource(1, "dl5.xlsx") },
+    { line_type: "item", source: buildSource(2, "dl5.xlsx") },
   ];
 
   const first = segmentDellItems({ items });
