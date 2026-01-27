@@ -35,14 +35,7 @@ const resolveSegmentItems = ({ segment, itemLookup }) => {
     if (!item) {
       throw new Error(`Missing item for source_ref ${ref} in segment ${segment.segment_id}`);
     }
-    return {
-      source_ref: ref,
-      qty: item.qty,
-      product_number: item.product_number ?? null,
-      description: item.description ?? null,
-      device_type: item.device_type,
-      line_type: item.line_type,
-    };
+    return item;
   });
 };
 
@@ -62,19 +55,10 @@ export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir 
   await fs.promises.mkdir(outDir, { recursive: true });
 
   for (const segment of segments) {
-    const payload = {
-      vendor: "dell",
-      segment_id: segment.segment_id,
-      anchor: segment.anchor,
-      items: resolveSegmentItems({ segment, itemLookup }),
-      meta: {
-        schema_version: 1,
-      },
-    };
-
-    const outputPath = path.join(outDir, `dell_segment_${segment.segment_id}.json`);
-    const serialized = `${JSON.stringify(payload, null, 2)}\n`;
-    await fs.promises.writeFile(outputPath, serialized, "utf8");
+    const itemsBySegment = resolveSegmentItems({ segment, itemLookup });
+    const outputPath = path.join(outDir, `items.${segment.segment_id}.jsonl`);
+    const serialized = itemsBySegment.map((item) => JSON.stringify(item)).join("\n");
+    await fs.promises.writeFile(outputPath, `${serialized}\n`, "utf8");
   }
 };
 
