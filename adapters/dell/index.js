@@ -46,6 +46,55 @@ const ensureOutDir = async (outputDir) => {
   await fs.promises.mkdir(outputDir, { recursive: true });
 };
 
+const ANCHOR_FIELDS = {
+  productName: ["Product Name", "product_name", "productName", "ProductName"],
+  moduleName: ["Module Name", "module_name", "moduleName", "ModuleName"],
+  skus: ["SKUs", "skus", "Sku", "SKU"],
+};
+
+const isEmptyValue = (value) => value == null || (typeof value === "string" && value.trim() === "");
+
+const getFieldValue = (record, fieldNames) => {
+  for (const fieldName of fieldNames) {
+    if (Object.prototype.hasOwnProperty.call(record, fieldName)) {
+      return record[fieldName];
+    }
+  }
+  return undefined;
+};
+
+const getBundleAnchorDescription = (record) => {
+  const productNameValue = getFieldValue(record, ANCHOR_FIELDS.productName);
+  const productName = typeof productNameValue === "string" ? productNameValue.trim() : null;
+  if (!productName) {
+    return null;
+  }
+
+  const moduleNameValue = getFieldValue(record, ANCHOR_FIELDS.moduleName);
+  const skusValue = getFieldValue(record, ANCHOR_FIELDS.skus);
+  if (!isEmptyValue(moduleNameValue) || !isEmptyValue(skusValue)) {
+    return null;
+  }
+
+  return productName;
+};
+
+const applyBundleAnchor = (record) => {
+  const description = getBundleAnchorDescription(record);
+  if (!description) {
+    return record;
+  }
+
+  const updated = { ...record, line_type: "anchor", description };
+  if ("product_number" in updated) {
+    updated.product_number = null;
+  }
+  if ("qty" in updated) {
+    updated.qty = 1;
+  }
+  return updated;
+};
+
 const main = async () => {
   const parsed = parseArgs(process.argv);
   if (parsed.error) {
@@ -72,6 +121,8 @@ const main = async () => {
     process.exit(1);
   }
 
+  const itemRecords = parsedWorkbook.itemRecords.map((record) => applyBundleAnchor(record));
+
   const summary = {
     files_processed: 1,
     sheets_processed: parsedWorkbook.sheetsProcessed,
@@ -85,7 +136,7 @@ const main = async () => {
   };
 
   const canonicalLines = parsedWorkbook.canonicalRecords.map((line) => JSON.stringify(line));
-  const itemLines = parsedWorkbook.itemRecords.map((line) => JSON.stringify(line));
+  const itemLines = itemRecords.map((line) => JSON.stringify(line));
 
   fs.writeFileSync(path.join(outputDir, "canonical.jsonl"), `${canonicalLines.join("\n")}\n`, {
     encoding: "utf8",
