@@ -35,9 +35,11 @@ const resolveSegmentItems = ({ segment, itemLookup }) => {
     if (!item) {
       throw new Error(`Missing item for source_ref ${ref} in segment ${segment.segment_id}`);
     }
-    return item;
+    return { ref, item };
   });
 };
+
+const DEFAULT_OUT_DIR = "C:\\Users\\G\\Desktop\\JarVis\\JarVis.Core\\out";
 
 export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir }) => {
   if (!segmentsPath || !itemsPath || !outDir) {
@@ -51,23 +53,37 @@ export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir 
 
   const itemLookup = buildItemLookup(items);
   const segments = segmentsPayload?.segments ?? [];
+  const vendor = segmentsPayload?.vendor ?? "dell";
+  const meta = segmentsPayload?.meta ?? { schema_version: 1 };
 
   await fs.promises.mkdir(outDir, { recursive: true });
 
   for (const segment of segments) {
     const itemsBySegment = resolveSegmentItems({ segment, itemLookup });
-    const outputPath = path.join(outDir, `items.${segment.segment_id}.jsonl`);
-    const serialized = itemsBySegment.map((item) => JSON.stringify(item)).join("\n");
-    await fs.promises.writeFile(outputPath, `${serialized}\n`, "utf8");
+    const outputPath = path.join(outDir, `dell_segment_${segment.segment_id}.json`);
+    const payload = {
+      vendor,
+      segment_id: segment.segment_id ?? null,
+      anchor: segment.anchor ?? null,
+      items: itemsBySegment.map(({ ref, item }) => ({
+        source_ref: ref,
+        qty: item?.qty ?? null,
+        product_number: item?.product_number ?? null,
+        description: item?.description ?? null,
+        device_type: item?.device_type ?? null,
+        line_type: item?.line_type ?? null,
+      })),
+      meta,
+    };
+    await fs.promises.writeFile(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   }
 };
 
 const run = async () => {
-  const root = process.cwd();
-  const outDir = path.join(root, "out");
+  const outDir = DEFAULT_OUT_DIR;
   await materializeDellSegments({
-    segmentsPath: path.join(outDir, "segments.dell.json"),
-    itemsPath: path.join(outDir, "items.jsonl"),
+    segmentsPath: path.join(DEFAULT_OUT_DIR, "segments.dell.json"),
+    itemsPath: path.join(DEFAULT_OUT_DIR, "items.jsonl"),
     outDir,
   });
 };
