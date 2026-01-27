@@ -9,6 +9,23 @@ const usage = () => {
   console.log("Usage: node scripts/diagnostics/dell-segments.js [--items <items.jsonl>] [--out <segments.dell.json>]");
 };
 
+const resolveInputBaseName = (itemsPath) => {
+  const parsed = itemsPath ? path.parse(itemsPath) : { name: "" };
+  const name = parsed.name ? parsed.name.toLowerCase() : "unknown";
+  return name;
+};
+
+const applyStableSegmentIds = (payload, { itemsPath }) => {
+  if (!payload?.segments?.length) {
+    return payload;
+  }
+  const baseName = resolveInputBaseName(itemsPath);
+  payload.segments.forEach((segment, index) => {
+    segment.segment_id = `dell_${baseName}_s${String(index + 1).padStart(3, "0")}`;
+  });
+  return payload;
+};
+
 const parseArgs = (argv) => {
   const args = argv.slice(2);
   let itemsPath = null;
@@ -52,6 +69,7 @@ const main = async () => {
   const outputPath = parsed.outputPath || DEFAULT_OUTPUT_PATH;
 
   const payload = await segmentDellItemsFile({ itemsPath });
+  applyStableSegmentIds(payload, { itemsPath });
   await writeDellSegments({ outputPath, payload });
 
   console.log(`Dell segmentation wrote ${payload.segments.length} segments to ${outputPath}`);
@@ -62,4 +80,4 @@ if (entryPath && entryPath === fileURLToPath(import.meta.url)) {
   await main();
 }
 
-export { main };
+export { applyStableSegmentIds, main };

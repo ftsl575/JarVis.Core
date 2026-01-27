@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { segmentDellItems } from "./diagnostics/segments/dell-segmenter.js";
+import { applyStableSegmentIds } from "./diagnostics/dell-segments.js";
 
 const buildSource = (rowIndex) => ({
   vendor: "dell",
@@ -41,4 +42,47 @@ test("dell segmentation: components-only yields zero segments", () => {
   const payload = segmentDellItems({ items });
 
   assert.equal(payload.segments.length, 0);
+});
+
+test("dell segmentation: segment_id format uses input basename with zero padding", () => {
+  const items = [
+    { line_type: "anchor", source: buildSource(1) },
+    { line_type: "item", source: buildSource(2) },
+    { line_type: "anchor", source: buildSource(3) },
+  ];
+
+  const payload = segmentDellItems({ items });
+  applyStableSegmentIds(payload, { itemsPath: "Dl1.xlsx" });
+
+  assert.equal(payload.segments[0].segment_id, "dell_dl1_s001");
+  assert.equal(payload.segments[1].segment_id, "dell_dl1_s002");
+});
+
+test("dell segmentation: segment_id uniqueness across different inputs", () => {
+  const items = [
+    { line_type: "anchor", source: buildSource(1) },
+    { line_type: "item", source: buildSource(2) },
+  ];
+
+  const payloadOne = segmentDellItems({ items });
+  const payloadTwo = segmentDellItems({ items });
+  applyStableSegmentIds(payloadOne, { itemsPath: "dl1.xlsx" });
+  applyStableSegmentIds(payloadTwo, { itemsPath: "dl2.xlsx" });
+
+  assert.notEqual(payloadOne.segments[0].segment_id, payloadTwo.segments[0].segment_id);
+});
+
+test("dell segmentation: segment_id stability across repeated runs", () => {
+  const items = [
+    { line_type: "anchor", source: buildSource(1) },
+    { line_type: "item", source: buildSource(2) },
+  ];
+
+  const first = segmentDellItems({ items });
+  const second = segmentDellItems({ items });
+  applyStableSegmentIds(first, { itemsPath: "DL5.xlsx" });
+  applyStableSegmentIds(second, { itemsPath: "DL5.xlsx" });
+
+  assert.equal(first.segments[0].segment_id, "dell_dl5_s001");
+  assert.equal(second.segments[0].segment_id, "dell_dl5_s001");
 });
