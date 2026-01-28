@@ -40,254 +40,75 @@ const normalizeNumber = (value) => {
 const resolvePartNumber = (item) =>
   item?.product_number ?? item?.part_number ?? item?.partNumber ?? item?.product ?? "";
 
-const normalizeDescription = (value) => (typeof value === "string" ? value.trim() : "");
-
-const TRACKING_DEVICE_TYPES = new Set([
-  "service",
-  "license",
-  "support",
-  "subscription",
-  "enablement",
-  "warranty",
-  "software",
-  "configuration",
-]);
-const TRACKING_KEYWORDS = [
-  "support",
-  "service",
-  "care",
-  "warranty",
-  "license",
-  "subscription",
-  "enablement",
-  "registration",
-  "entitlement",
-  "software",
-  "configuration",
-];
-
-const isTrackingRow = ({ description, deviceType }) => {
-  const normalizedType = normalizeDescription(deviceType).toLowerCase();
-  if (TRACKING_DEVICE_TYPES.has(normalizedType)) {
-    return true;
+const parseSourceRef = (sourceRef) => {
+  if (typeof sourceRef !== "string") {
+    return { file: "", sheet: "", row: "" };
   }
-  const normalizedDescription = normalizeDescription(description).toLowerCase();
-  return TRACKING_KEYWORDS.some((keyword) => normalizedDescription.includes(keyword));
+  const parts = sourceRef.split("::");
+  if (parts.length !== 3) {
+    return { file: "", sheet: "", row: "" };
+  }
+  const [file, sheet, rowText] = parts;
+  const row = Number.parseInt(rowText, 10);
+  return {
+    file: file || "",
+    sheet: sheet || "",
+    row: Number.isFinite(row) ? row : "",
+  };
 };
 
-const PHYSICAL_DEVICE_TYPES = new Set([
-  "server",
-  "blade chassis",
-  "compute",
-  "storage",
-  "cpu",
-  "ram",
-  "memory",
-  "gpu",
-  "network",
-  "hdd",
-  "ssd",
-  "nvme",
-  "disk",
-  "drive",
-  "drive cage",
-  "disk enclosure",
-  "tape library",
-  "backplane",
-  "raid controller",
-  "controller",
-  "network adapter",
-  "network interface card",
-  "nic",
-  "hba",
-  "psu",
-  "power supply",
-  "power cord",
-  "cable",
-  "rail kit",
-  "fan",
-  "cooling module",
-  "riser kit",
-  "bezel",
-  "transceiver",
-  "network switch",
-  "router",
-  "firewall",
-  "fabric interconnect",
-  "hardware (accessory)",
-  "battery",
-  "pdu",
-]);
-const NON_PHYSICAL_DEVICE_TYPES = new Set([
-  "software",
-  "license",
-  "support",
-  "subscription",
-  "service",
-  "enablement",
-  "warranty",
-  "configuration",
-  "tracking",
-]);
-const NON_PHYSICAL_LINE_TYPES = new Set([
-  "support",
-  "subscription",
-  "license",
-  "service",
-  "enablement",
-  "configuration",
-  "fio",
-  "tracking",
-]);
-
-const isPhysicalRow = ({ description, deviceType, lineType }) => {
-  const normalizedDeviceType = normalizeDescription(deviceType).toLowerCase();
-  const normalizedLineType = normalizeDescription(lineType).toLowerCase();
-  if (NON_PHYSICAL_LINE_TYPES.has(normalizedLineType)) {
-    return false;
+const resolveAnchorItem = ({ segment, items }) => {
+  const anchorRef = segment?.anchor?.source_ref ?? null;
+  if (anchorRef) {
+    const anchorItem = items.find((item) => item?.source_ref === anchorRef);
+    if (anchorItem) {
+      return anchorItem;
+    }
   }
-  if (NON_PHYSICAL_DEVICE_TYPES.has(normalizedDeviceType)) {
-    return false;
-  }
-  if (isTrackingRow({ description, deviceType })) {
-    return false;
-  }
-  return PHYSICAL_DEVICE_TYPES.has(normalizedDeviceType);
+  return items.find((item) => item?.line_type === "anchor") ?? null;
 };
 
-const buildItemMaps = (items) => {
-  const byId = new Map();
-  const byFileRow = new Map();
-
-  for (const item of items) {
-    const itemId = item?.id ?? item?.item_id ?? null;
-    if (itemId) {
-      byId.set(itemId, item);
-    }
-    const file = item?.source?.file ?? null;
-    const row = item?.source?.row ?? null;
-    if (file && Number.isFinite(row)) {
-      const key = `${file}::${row}`;
-      if (!byFileRow.has(key)) {
-        byFileRow.set(key, item);
-      }
-    }
-  }
-
-  return { byId, byFileRow };
-};
-
-const buildSecondaryAnchorText = ({ segment, file, itemByFileRow }) => {
-  const rows = segment?.secondary_anchor_rows ?? [];
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return "";
-  }
-  const descriptions = rows.map((row) => {
-    const key = `${file}::${row}`;
-    const item = itemByFileRow.get(key);
-    if (item?.description) {
-      return item.description;
-    }
-    if (item?.product_number) {
-      return item.product_number;
-    }
-    return `Row ${row}`;
-  });
-  return descriptions.join("; ");
-};
-
-const buildSegmentTableRows = ({ segment, file, itemById }) => {
-  const items = Array.isArray(segment?.items) ? segment.items : [];
-  const anchorRef = items.find((item) => item?.is_anchor);
+const buildSegmentTableRows = ({ segment, items }) => {
   const rows = [];
-  let anchorRow = null;
-  const serverCount = segment?.server_anchor?.qty ?? null;
+  const anchorItem = resolveAnchorItem({ segment, items });
+  const orderedItems = Array.isArray(items) ? items : [];
 
-  const sorted = items.sort((a, b) => {
-    const rowA = Number.isFinite(a?.source?.row) ? a.source.row : Number.POSITIVE_INFINITY;
-    const rowB = Number.isFinite(b?.source?.row) ? b.source.row : Number.POSITIVE_INFINITY;
-    if (rowA !== rowB) {
-      return rowA - rowB;
-    }
-    const idA = a?.item_id ?? "";
-    const idB = b?.item_id ?? "";
-    return idA.localeCompare(idB);
-  });
-
-  const nonAnchorRows = anchorRef ? sorted.filter((item) => item !== anchorRef) : sorted;
-
-  if (segment?.server_anchor) {
-    const anchorItem = anchorRef?.item_id ? itemById.get(anchorRef.item_id) : null;
-    const description =
-      anchorItem?.description ?? anchorRef?.description ?? segment.server_anchor?.description ?? "";
-    rows.push({
-      isAnchor: true,
-      isPhysical: true,
-      values: [
-        1,
-        normalizeNumber(segment.server_anchor?.qty ?? ""),
-        resolvePartNumber(anchorItem) ||
-          resolvePartNumber(anchorRef) ||
-          segment.server_anchor?.part_number ||
-          "",
-        description,
-        anchorItem?.device_type ?? anchorRef?.device_type ?? "",
-        anchorItem?.line_type ?? anchorRef?.line_type ?? "",
-        anchorItem?.source?.file ?? anchorRef?.source?.file ?? file ?? "",
-        anchorItem?.source?.sheet ?? anchorRef?.source?.sheet ?? "",
-        normalizeNumber(anchorItem?.source?.row ?? anchorRef?.source?.row ?? ""),
-        anchorItem?.id ?? anchorItem?.item_id ?? anchorRef?.item_id ?? "",
-      ],
-    });
-    anchorRow = rows[rows.length - 1];
+  if (anchorItem) {
+    const anchorSource = parseSourceRef(anchorItem?.source_ref);
+    rows.push([
+      1,
+      normalizeNumber(anchorItem?.qty ?? ""),
+      resolvePartNumber(anchorItem),
+      anchorItem?.description ?? "",
+      anchorItem?.device_type ?? "",
+      anchorItem?.line_type ?? "",
+      anchorSource.file,
+      anchorSource.sheet,
+      normalizeNumber(anchorSource.row),
+      anchorItem?.source_ref ?? "",
+    ]);
   }
 
-  for (const ref of nonAnchorRows) {
-    const item = ref?.item_id ? itemById.get(ref.item_id) : null;
-    const perServerQty = ref?.per_server_qty ?? "";
-    const totalQty =
-      Number.isFinite(perServerQty) && Number.isFinite(serverCount)
-        ? perServerQty * serverCount
-        : item?.qty ?? ref?.qty ?? "";
-    const description = item?.description ?? ref?.description ?? "";
-    rows.push({
-      isAnchor: false,
-      isPhysical: isPhysicalRow({
-        description,
-        deviceType: item?.device_type ?? ref?.device_type ?? "",
-        lineType: item?.line_type ?? ref?.line_type ?? "",
-      }),
-      values: [
-        normalizeNumber(perServerQty),
-        normalizeNumber(totalQty),
-        resolvePartNumber(item) || resolvePartNumber(ref),
-        description,
-        item?.device_type ?? ref?.device_type ?? "",
-        item?.line_type ?? ref?.line_type ?? "",
-        item?.source?.file ?? ref?.source?.file ?? file ?? "",
-        item?.source?.sheet ?? ref?.source?.sheet ?? "",
-        normalizeNumber(item?.source?.row ?? ref?.source?.row ?? ""),
-        item?.id ?? item?.item_id ?? ref?.item_id ?? "",
-      ],
-    });
-  }
-
-  const physical = [];
-  const nonPhysical = [];
-  for (const row of rows) {
-    if (row.isAnchor) {
+  for (const item of orderedItems) {
+    if (anchorItem && item?.source_ref === anchorItem.source_ref) {
       continue;
     }
-    if (row.isPhysical) {
-      physical.push(row.values);
-    } else {
-      nonPhysical.push(row.values);
-    }
+    const source = parseSourceRef(item?.source_ref);
+    rows.push([
+      "",
+      normalizeNumber(item?.qty ?? ""),
+      resolvePartNumber(item),
+      item?.description ?? "",
+      item?.device_type ?? "",
+      item?.line_type ?? "",
+      source.file,
+      source.sheet,
+      normalizeNumber(source.row),
+      item?.source_ref ?? "",
+    ]);
   }
-  if (anchorRow) {
-    return [anchorRow.values, ...physical, ...nonPhysical];
-  }
-  return [...physical, ...nonPhysical];
+
+  return rows;
 };
 
 const normalizeWorksheetView = (sheet, rows) => {
@@ -343,15 +164,16 @@ const enforceVisibleColumns = (sheet, rows) => {
   sheet["!cols"] = cols;
 };
 
-const buildSegmentSheet = ({ segment, file, itemById, itemByFileRow }) => {
+const buildSegmentSheet = ({ segment, items }) => {
   const rows = [];
   const segmentId = segment?.segment_id ?? "";
-  const isPartial = Boolean(segment?.is_partial || !segment?.server_anchor);
+  const anchorItem = resolveAnchorItem({ segment, items });
+  const isPartial = !anchorItem;
 
   rows.push(["Configuration", segmentId !== "" ? segmentId : ""]);
-  rows.push(["Server model/description", segment?.server_anchor?.description ?? ""]);
-  rows.push(["Server count in order", normalizeNumber(segment?.server_anchor?.qty ?? "")]);
-  rows.push(["Secondary anchors", buildSecondaryAnchorText({ segment, file, itemByFileRow })]);
+  rows.push(["Server model/description", anchorItem?.description ?? ""]);
+  rows.push(["Server count in order", normalizeNumber(anchorItem?.qty ?? "")]);
+  rows.push(["Secondary anchors", ""]);
   if (isPartial) {
     rows.push(["Status", "PARTIAL / UNANCHORED"]);
   }
@@ -360,8 +182,7 @@ const buildSegmentSheet = ({ segment, file, itemById, itemByFileRow }) => {
 
   const tableRows = buildSegmentTableRows({
     segment,
-    file,
-    itemById,
+    items,
   });
   rows.push(...tableRows);
 
@@ -371,20 +192,10 @@ const buildSegmentSheet = ({ segment, file, itemById, itemByFileRow }) => {
   return sheet;
 };
 
-const resolveSegmentData = (payload) => {
-  if (payload?.segment) {
-    return {
-      segment: payload.segment,
-      items: Array.isArray(payload.items) ? payload.items : [],
-      file: payload.file ?? payload.segment?.file ?? payload.source_file ?? "",
-    };
-  }
-  return {
-    segment: payload,
-    items: Array.isArray(payload?.items) ? payload.items : [],
-    file: payload?.file ?? payload?.source_file ?? "",
-  };
-};
+const resolveSegmentData = (payload) => ({
+  segment: payload,
+  items: Array.isArray(payload?.items) ? payload.items : [],
+});
 
 const resolveSegmentId = (segment, inputPath) => {
   const match = path.basename(inputPath).match(/dell_segment_(.+)\.json$/);
@@ -397,14 +208,11 @@ const resolveSegmentId = (segment, inputPath) => {
   return null;
 };
 
-const buildWorkbook = ({ segment, items, file }) => {
+const buildWorkbook = ({ segment, items }) => {
   const workbook = xlsx.utils.book_new();
-  const { byId, byFileRow } = buildItemMaps(items);
   const sheet = buildSegmentSheet({
     segment,
-    file,
-    itemById: byId,
-    itemByFileRow: byFileRow,
+    items,
   });
   xlsx.utils.book_append_sheet(workbook, sheet, "Cfg 01");
   return workbook;
@@ -429,13 +237,13 @@ const discoverSegmentInputs = async () => {
 const processSegmentInput = async (inputPath) => {
   const raw = await fs.promises.readFile(inputPath, "utf8");
   const payload = JSON.parse(raw);
-  const { segment, items, file } = resolveSegmentData(payload);
+  const { segment, items } = resolveSegmentData(payload);
   const segmentId = resolveSegmentId(segment, inputPath);
   if (!segmentId) {
     throw new Error("Unable to resolve segment id from input file name or payload.");
   }
 
-  const workbook = buildWorkbook({ segment, items, file });
+  const workbook = buildWorkbook({ segment, items });
   const outputDir = path.dirname(inputPath);
   const outputPath = path.join(outputDir, `cleaned_spec.dell.segment_${segmentId}.xlsx`);
 
