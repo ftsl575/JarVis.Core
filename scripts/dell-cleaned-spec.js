@@ -68,10 +68,39 @@ const resolveAnchorItem = ({ segment, items }) => {
   return items.find((item) => item?.line_type === "anchor") ?? null;
 };
 
+const NON_PHYSICAL_DEVICE_TYPES = new Set([
+  "software",
+  "license",
+  "support",
+  "service",
+  "warranty",
+  "deployment",
+  "subscription",
+  "enablement",
+]);
+
+const normalizeText = (value) => (value === null || value === undefined ? "" : String(value).trim());
+
+const resolveRowClass = (item) => {
+  const deviceType = normalizeText(item?.device_type).toLowerCase();
+  const lineType = normalizeText(item?.line_type).toLowerCase();
+
+  if (lineType === "attribute" || deviceType === "configuration") {
+    return "service_tail";
+  }
+  if (NON_PHYSICAL_DEVICE_TYPES.has(deviceType)) {
+    return "non_physical";
+  }
+  return "physical";
+};
+
 const buildSegmentTableRows = ({ segment, items }) => {
   const rows = [];
   const anchorItem = resolveAnchorItem({ segment, items });
   const orderedItems = Array.isArray(items) ? items : [];
+  const physicalRows = [];
+  const nonPhysicalRows = [];
+  const serviceTailRows = [];
 
   if (anchorItem) {
     const anchorSource = parseSourceRef(anchorItem?.source_ref);
@@ -94,7 +123,7 @@ const buildSegmentTableRows = ({ segment, items }) => {
       continue;
     }
     const source = parseSourceRef(item?.source_ref);
-    rows.push([
+    const row = [
       "",
       normalizeNumber(item?.qty ?? ""),
       resolvePartNumber(item),
@@ -105,10 +134,18 @@ const buildSegmentTableRows = ({ segment, items }) => {
       source.sheet,
       normalizeNumber(source.row),
       item?.source_ref ?? "",
-    ]);
+    ];
+    const rowClass = resolveRowClass(item);
+    if (rowClass === "service_tail") {
+      serviceTailRows.push(row);
+    } else if (rowClass === "non_physical") {
+      nonPhysicalRows.push(row);
+    } else {
+      physicalRows.push(row);
+    }
   }
 
-  return rows;
+  return rows.concat(physicalRows, nonPhysicalRows, serviceTailRows);
 };
 
 const normalizeWorksheetView = (sheet, rows) => {
