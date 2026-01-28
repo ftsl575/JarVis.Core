@@ -28,7 +28,21 @@ const compareBatchPaths = (a, b) => {
 };
 
 const usage = () => {
-  console.log("Usage: node scripts/diagnostics/dell-batch.js [--inputs <dir>] [files/globs...]");
+  console.log(
+    [
+      "Usage:",
+      "  Canonical mode:",
+      "    node scripts/diagnostics/dell-batch.js --inputs <globOrPath> [--inputs <globOrPath> ...]",
+      "  Alias mode:",
+      "    node scripts/diagnostics/dell-batch.js --inDir <dirPath> [--outDir <dirPath>]",
+      "  Positional patterns:",
+      "    node scripts/diagnostics/dell-batch.js [files/globs...]",
+      "",
+      "Notes:",
+      "  --inputs and --inDir are mutually exclusive.",
+      "  --outDir is accepted for compatibility but is ignored by the Dell batch runner.",
+    ].join("\n")
+  );
 };
 
 const hasGlob = (value) => /[*?]/.test(value);
@@ -179,8 +193,10 @@ const runDellBatch = async ({ batchInputDir, outDir, diagRoot, patterns }) => {
 
 const parseArgs = (argv) => {
   const args = argv.slice(2);
-  let batchInputDir = DEFAULT_BATCH_INPUT_DIR;
   const patterns = [];
+  const inputs = [];
+  let inDir = null;
+  let outDir = null;
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -189,7 +205,25 @@ const parseArgs = (argv) => {
       if (!next) {
         return { error: "Missing value for --inputs" };
       }
-      batchInputDir = next;
+      inputs.push(next);
+      i += 1;
+      continue;
+    }
+    if (arg === "--inDir") {
+      const next = args[i + 1];
+      if (!next) {
+        return { error: "Missing value for --inDir" };
+      }
+      inDir = next;
+      i += 1;
+      continue;
+    }
+    if (arg === "--outDir") {
+      const next = args[i + 1];
+      if (!next) {
+        return { error: "Missing value for --outDir" };
+      }
+      outDir = next;
       i += 1;
       continue;
     }
@@ -202,7 +236,19 @@ const parseArgs = (argv) => {
     patterns.push(arg);
   }
 
-  return { batchInputDir, patterns };
+  if (inDir && inputs.length > 0) {
+    return { error: "Cannot combine --inputs with --inDir. Use one mode only." };
+  }
+
+  if (inDir) {
+    patterns.push(inDir);
+  }
+
+  if (inputs.length > 0) {
+    patterns.push(...inputs);
+  }
+
+  return { batchInputDir: DEFAULT_BATCH_INPUT_DIR, patterns, outDir };
 };
 
 const main = async () => {
@@ -216,6 +262,10 @@ const main = async () => {
     usage();
     process.exitCode = 1;
     return;
+  }
+
+  if (parsed.outDir) {
+    console.warn("Warning: --outDir is ignored by the Dell batch runner.");
   }
 
   try {
