@@ -1,0 +1,126 @@
+# Dell diagnostics — Implement batch-runner (HPE-like orchestration) for Dell Stage 1→4 (Dell-only)
+
+You are the Project-window for JarVis.Core.
+Your task is to produce a FINAL Codex implementation prompt for ONE small, safe PR.
+
+You do NOT write code yourself.
+You ONLY formulate strict Codex instructions.
+
+--------------------------------------------------------------------
+PROJECT
+--------------------------------------------------------------------
+Repository:
+https://github.com/ftsl575/JarVis.Core
+
+--------------------------------------------------------------------
+AUTHORITATIVE CONTEXT (LOCKED — DO NOT CHANGE)
+--------------------------------------------------------------------
+- Dell Design Freeze v1 is authoritative and MUST be complied with (READ-ONLY):
+  docs/DELL_DESIGN_FREEZE_v1.md
+- HPE baseline v1 is stable and frozen. DO NOT touch HPE.
+- Dell Stage 1–4 logic is CLOSED and MUST NOT change.
+
+--------------------------------------------------------------------
+INPUTS PROVIDED / FILES (MUST LIST 1:1 IN THE CODEX PROMPT)
+--------------------------------------------------------------------
+1) Approved, final Codex implementation prompt (from PR #103) — DOCS-ONLY file:
+   - (ATTACHED) CODEX_PROMPT__Dell_diagnostics_batch_runner__ONE_PR__PR103_FINAL.txt
+
+Note:
+- The attached PR103 prompt is the authoritative requirements spec for this PR.
+- You MUST NOT reinterpret, extend, or “improve” its scope.
+- If anything in your own wording conflicts with PR103 prompt → PR103 prompt wins.
+
+--------------------------------------------------------------------
+GOAL (SINGLE, STRICT)
+--------------------------------------------------------------------
+Produce a Codex implementation prompt that results in a PR implementing:
+- Dell diagnostics batch-runner orchestration with HPE-like workflow behavior,
+- while leaving Dell Stage 1–4 parsing/segmentation/materialization/consumers unchanged.
+
+The PR must make it possible to run Dell diagnostics in batch mode (multiple inputs)
+without modifying Dell Stage 1–4 logic.
+
+--------------------------------------------------------------------
+HARD CONSTRAINTS (MANDATORY)
+--------------------------------------------------------------------
+- ONE PR only. Minimal, safe changes.
+- Dell-only: changes limited to Dell diagnostics batch orchestration (scripts/diagnostics tooling).
+- NO refactors (only minimal edits required for the batch runner).
+- NO new tests; NO edits to existing tests.
+- NO binaries or generated artifacts committed.
+- DO NOT change Dell:
+  - adapter (Stage 1),
+  - segmentation (Stage 2),
+  - materialization (Stage 3),
+  - cleaned_spec / invoice / any consumers (Stage 4+).
+- DO NOT change any HPE code, HPE batch runner, or HPE diagnostics.
+- DO NOT add new unrelated CLI commands beyond what is strictly required for the Dell batch-runner.
+
+--------------------------------------------------------------------
+SCOPE BOUNDARIES (RESTATE — MUST FOLLOW)
+--------------------------------------------------------------------
+IN SCOPE (ALLOWED):
+- Add a Dell-only diagnostics batch runner script.
+- Wire existing Dell Stage 1–4 scripts in correct order.
+- Copy final Excel artifacts from out/ to per-input folders under diag.
+
+OUT OF SCOPE (FORBIDDEN):
+- Any HPE code, scripts, or tests.
+- Any changes to Dell Stage 1–4 logic.
+- Any refactors of existing pipelines.
+- Any heuristics, guessing, or ML.
+- Any binary artifacts.
+
+--------------------------------------------------------------------
+MANDATORY BATCH-RUNNER BEHAVIOR (HPE-LIKE ORCHESTRATION ONLY)
+--------------------------------------------------------------------
+The Dell batch runner MUST:
+
+1) Enumerate inputs from:
+   diag/_batch_inputs/*.xlsx
+
+2) For EACH input file:
+   a) Clean out/ directory (out = last run only).
+   b) Run Dell Stage 1 adapter.
+   c) Run Dell Stage 2 segmentation.
+   d) Run Dell Stage 3 materialization.
+   e) Run Dell Stage 4 cleaned_spec consumer.
+   f) Copy ALL produced *.xlsx artifacts from out/
+      into a per-input folder under diag.
+
+3) Create per-input folder under diag using input basename.
+
+4) Be deterministic and sequential (no parallelism).
+
+--------------------------------------------------------------------
+IMPLEMENTATION NOTES (STRICT)
+--------------------------------------------------------------------
+- Reuse existing Dell scripts; do NOT reimplement logic.
+- Follow patterns from:
+  scripts/diagnostics/hpe-batch.js
+  scripts/diagnostics/hpe-batch-pack.js
+- Errors for one input MUST NOT prevent processing of others
+  (follow HPE permissive batch behavior).
+- Logging should clearly indicate per-input progress.
+
+--------------------------------------------------------------------
+FILES TO CHANGE (EXPLICIT PATHS; MINIMAL SET ONLY)
+--------------------------------------------------------------------
+- scripts/diagnostics/dell-batch.js (new)
+
+--------------------------------------------------------------------
+ACCEPTANCE CRITERIA (ALL REQUIRED)
+--------------------------------------------------------------------
+- Running the Dell batch script processes ALL files
+  in diag/_batch_inputs.
+- For each input, cleaned_spec Excel appears physically
+  under diag/<input_name>/.
+- out/ contains only artifacts from the LAST processed input.
+- Existing tests remain GREEN.
+
+--------------------------------------------------------------------
+LOCAL VERIFICATION (POWERSHELL-FRIENDLY)
+--------------------------------------------------------------------
+- node scripts/diagnostics/dell-batch.js
+
