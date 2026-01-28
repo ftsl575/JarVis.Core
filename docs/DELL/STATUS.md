@@ -1,8 +1,14 @@
 # Dell status
 
 ## Closed / Verified
+- Dell Stage 1 — CLOSED (canonical + items baseline stable).
+- Dell Stage 2 — CLOSED (deterministic segmentation with stable segment_id).
+- Dell Stage 3 — CLOSED (per-segment materialization verified).
 - CLI diagnostics (`scripts/diagnostics/dell-segments.js`) generates `segment_id` values in the format `dell_<basename>_sNNN` (basename examples: `dl1`, `dl2`).
 - Unit tests covering `segment_id` format, uniqueness, and stability are PASS.
+- Unit tests: 59/59 PASS.
+- PR #99 — Dell Stage 3 materialization.
+- PR #100 — Dell Stage 3 wiring fix.
 
 ## References
 - PR #96
