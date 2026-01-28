@@ -136,17 +136,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       "item",
     ]);
 
-    const attributeRow = rows[tableHeaderIndex + 3];
-    assert.deepEqual(attributeRow.slice(0, 6), [
-      "",
-      1,
-      "BIOSTUNE",
-      "BIOS Setting",
-      "configuration",
-      "attribute",
-    ]);
-
-    const supportRow = rows[tableHeaderIndex + 4];
+    const supportRow = rows[tableHeaderIndex + 3];
     assert.deepEqual(supportRow.slice(0, 6), [
       "",
       1,
@@ -154,6 +144,16 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       "Support plan",
       "support",
       "item",
+    ]);
+
+    const attributeRow = rows[tableHeaderIndex + 4];
+    assert.deepEqual(attributeRow.slice(0, 6), [
+      "",
+      1,
+      "BIOSTUNE",
+      "BIOS Setting",
+      "configuration",
+      "attribute",
     ]);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
