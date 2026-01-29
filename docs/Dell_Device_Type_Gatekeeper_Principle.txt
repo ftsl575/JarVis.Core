@@ -1,0 +1,49 @@
+DELL DEVICE_TYPE GATEKEEPER PRINCIPLE
+
+Purpose & scope
+This document defines the Dell-only, declarative gatekeeper rule for the cleaned spec field
+"device_type". It is normative documentation aligned with Dell Design Freeze v1 and the
+Dell Cleaned Spec principle. It introduces no new behavior, logic, or inference.
+
+Normative core principle
+- device_type applies ONLY to SYSTEM-LEVEL DEVICES.
+- For ALL other entity kinds, device_type MUST be absent / not applicable.
+
+Canonical entity kinds (system vs. non-device)
+System-level devices (device_type allowed):
+- System / base system rows that represent a complete device configuration boundary.
+
+Non-device entities (device_type forbidden):
+- Hardware components (parts, subassemblies, options, spares).
+- Configuration / settings rows (modes, toggles, no-* lines, BIOS/RAID/feature configs).
+- Software / licenses / management features.
+- Services (support, warranty, deployment, installation, etc.).
+- Logistics / regulatory lines (shipping, compliance, region, certifications).
+- Documentation / media (manuals, DVDs, labels, collateral).
+- Asset identification (tags, labels, identifiers).
+
+Explicit allow/forbid rule (deterministic)
+- ALLOW: device_type MAY appear only on system-level device rows.
+- FORBID: device_type MUST NOT appear on any non-device entity kind listed above.
+
+Module Name role clarification (Dell-only)
+- Module Name is NOT a device_type inference signal.
+- Module Name MAY act only as a gatekeeper:
+  - prohibit device_type on non-device rows.
+  - require device_type on system/base rows when those rows are explicitly present.
+- Module Name MUST NOT be used to guess or infer device_type.
+
+Safety-first default (fallback rule)
+- If the entity kind is ambiguous or cannot be determined deterministically:
+  - treat the row as NOT A DEVICE.
+  - device_type MUST NOT be assigned.
+
+Determinism guarantee
+- The rule prefers refusal over misclassification.
+- The rule introduces no probabilistic or heuristic behavior.
+
+Explicit non-goals
+- No changes to Dell pipeline behavior or stage contracts.
+- No new classification logic or inference rules.
+- No reinterpretation of Dell Design Freeze v1.
+- No semantic use of Module Name beyond gatekeeping prohibition/requirement.
