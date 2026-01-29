@@ -8,6 +8,8 @@ const DEFAULT_OUT_DIR = "C:\\Users\\G\\Desktop\\JarVis\\JarVis.Core\\out";
 const DEFAULT_DIAG_ROOT = "C:\\Users\\G\\Desktop\\JarVis\\JarVis.Core\\diag";
 
 const isXlsxFile = (name) => name.toLowerCase().endsWith(".xlsx");
+const isTempFile = (name) => name.startsWith("~$");
+const isBatchInputFile = (name) => isXlsxFile(name) && !isTempFile(name);
 
 const compareBatchPaths = (a, b) => {
   const aName = path.basename(a).toLowerCase();
@@ -58,7 +60,7 @@ const discoverBatchInputs = async (batchInputDir) => {
     const entries = await fs.promises.readdir(batchInputDir, { withFileTypes: true });
     const files = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
     return files
-      .filter(isXlsxFile)
+      .filter(isBatchInputFile)
       .map((file) => path.resolve(batchInputDir, file))
       .sort(compareBatchPaths);
   } catch (error) {
@@ -77,6 +79,9 @@ const resolvePatternInputs = async (pattern) => {
       return discoverBatchInputs(resolved);
     }
     if (stats.isFile()) {
+      if (!isBatchInputFile(path.basename(resolved))) {
+        return [];
+      }
       return [resolved];
     }
     throw new Error(`Unsupported input path: ${pattern}`);
@@ -91,7 +96,7 @@ const resolvePatternInputs = async (pattern) => {
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
     .filter((name) => matcher.test(name))
-    .filter(isXlsxFile)
+    .filter(isBatchInputFile)
     .map((name) => path.resolve(targetDir, name));
 };
 
@@ -127,24 +132,39 @@ const runStep = ({ label, scriptPath, args = [] }) => {
   }
 };
 
-const copyXlsxArtifacts = async ({ inputPath, outDir, diagRoot }) => {
+const formatBatchTimestamp = (timestamp) => {
+  const year = timestamp.getFullYear();
+  const month = String(timestamp.getMonth() + 1).padStart(2, "0");
+  const day = String(timestamp.getDate()).padStart(2, "0");
+  const hours = String(timestamp.getHours()).padStart(2, "0");
+  const minutes = String(timestamp.getMinutes()).padStart(2, "0");
+  const seconds = String(timestamp.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}_${hours}${minutes}${seconds}`;
+};
+
+const sanitizeInputBase = (name) =>
+  name.replace(/ /g, "_").replace(/[^A-Za-z0-9._-]/g, "_");
+
+const buildRunDir = ({ inputPath, diagRoot, batchTimestamp }) => {
   const inputName = path.parse(inputPath).name;
-  const runDir = path.join(diagRoot, inputName);
+  const sanitized = sanitizeInputBase(inputName);
+  return path.join(diagRoot, `run_${batchTimestamp}__${sanitized}`);
+};
+
+const copyOutArtifacts = async ({ outDir, runDir }) => {
   await fs.promises.mkdir(runDir, { recursive: true });
 
   const entries = await fs.promises.readdir(outDir, { withFileTypes: true });
-  const artifacts = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .filter(isXlsxFile);
-
-  for (const artifact of artifacts) {
-    await fs.promises.copyFile(path.join(outDir, artifact), path.join(runDir, artifact));
+  for (const entry of entries) {
+    const sourcePath = path.join(outDir, entry.name);
+    const targetPath = path.join(runDir, entry.name);
+    await fs.promises.cp(sourcePath, targetPath, { recursive: true });
   }
 };
 
 const runDellBatch = async ({ batchInputDir, outDir, diagRoot, patterns }) => {
   const inputs = await resolveBatchInputs({ batchInputDir, patterns });
+  const batchTimestamp = formatBatchTimestamp(new Date());
 
   if (inputs.length === 0) {
     console.log(`Dell batch diagnostics: no inputs found in ${batchInputDir}`);
@@ -153,11 +173,15 @@ const runDellBatch = async ({ batchInputDir, outDir, diagRoot, patterns }) => {
 
   let ok = 0;
   let failed = 0;
+  const failedInputs = [];
+  const total = inputs.length;
 
   for (const inputPath of inputs) {
+    const runDir = buildRunDir({ inputPath, diagRoot, batchTimestamp });
     console.log(`Dell batch: input -> ${inputPath}`);
     await ensureCleanOutDir(outDir);
 
+    let runError = null;
     try {
       runStep({
         label: "stage1:adapter",
@@ -177,18 +201,38 @@ const runDellBatch = async ({ batchInputDir, outDir, diagRoot, patterns }) => {
         label: "stage4:cleaned-spec",
         scriptPath: path.resolve("scripts/dell-cleaned-spec.js"),
       });
-      await copyXlsxArtifacts({ inputPath, outDir, diagRoot });
+    } catch (error) {
+      runError = error;
+      console.error(`Dell batch: input -> failed (${inputPath})`);
+    }
+
+    try {
+      await copyOutArtifacts({ outDir, runDir });
+    } catch (error) {
+      if (!runError) {
+        runError = error;
+        console.error(`Dell batch: copy out failed (${inputPath})`);
+      }
+    }
+
+    if (runError) {
+      failed += 1;
+      failedInputs.push(path.basename(inputPath));
+      const message = runError instanceof Error ? runError.stack ?? runError.message : String(runError);
+      const content = `input: ${path.basename(inputPath)}\n${message}\n`;
+      await fs.promises.mkdir(runDir, { recursive: true });
+      await fs.promises.writeFile(path.join(runDir, "batch_error.txt"), content, "utf8");
+    } else {
       console.log(`Dell batch: input -> done (${inputPath})`);
       ok += 1;
-    } catch (error) {
-      failed += 1;
-      console.error(`Dell batch: input -> failed (${inputPath})`);
-      throw error;
     }
   }
 
-  console.log(`Dell batch diagnostics done: ok=${ok} failed=${failed}`);
-  return { ok, failed };
+  console.log(`Dell batch diagnostics summary: total=${total} ok=${ok} failed=${failed}`);
+  if (failedInputs.length > 0) {
+    console.log(`Dell batch diagnostics failed inputs: ${failedInputs.join(", ")}`);
+  }
+  return { ok, failed, failedInputs };
 };
 
 const parseArgs = (argv) => {
