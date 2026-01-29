@@ -34,6 +34,7 @@ const headerVariants = {
   productNumber: new Set(["skus"]),
   description: new Set(["option name"]),
   descriptionFallback: new Set(["product name"]),
+  moduleName: new Set(["module name", "module_name", "modulename"]),
 };
 
 const findHeader = (sheet, range) => {
@@ -48,6 +49,7 @@ const findHeader = (sheet, range) => {
       description: null,
       descriptionFallback: null,
       qtyFallback: null,
+      moduleName: null,
       matchCount: 0,
     };
 
@@ -78,6 +80,9 @@ const findHeader = (sheet, range) => {
         matches.descriptionFallback = c + 1;
         matches.matchCount += 1;
       }
+      if (!matches.moduleName && headerVariants.moduleName.has(value)) {
+        matches.moduleName = c + 1;
+      }
     }
 
     if (matches.matchCount > 0 && (!bestMatch || matches.matchCount > bestMatch.matchCount)) {
@@ -94,14 +99,15 @@ const findHeader = (sheet, range) => {
     return {
       headerRowIndex: null,
       columnMap: {
-        qty: null,
-        qty_fallback: null,
-        product_number: null,
-        description: null,
-        description_fallback: null,
-      },
-      matchCount: 0,
-    };
+      qty: null,
+      qty_fallback: null,
+      product_number: null,
+      description: null,
+      description_fallback: null,
+      module_name: null,
+    },
+    matchCount: 0,
+  };
   }
 
   return {
@@ -112,6 +118,7 @@ const findHeader = (sheet, range) => {
       product_number: bestMatch.productNumber,
       description: bestMatch.description,
       description_fallback: bestMatch.descriptionFallback,
+      module_name: bestMatch.moduleName,
     },
     matchCount: bestMatch.matchCount,
   };
@@ -169,6 +176,7 @@ const toLine = ({
     range,
     columnMap.description_fallback,
   );
+  const moduleNameValue = getCellFromRow(cells, range, columnMap.module_name);
 
   const parsedQty = parseQty(qtyValue);
   const fallbackQty = parseQty(qtyFallbackValue);
@@ -179,6 +187,8 @@ const toLine = ({
       : descriptionFallbackValue && cellToString(descriptionFallbackValue)
         ? cellToString(descriptionFallbackValue)
         : null;
+  const moduleNameRaw =
+    moduleNameValue && cellToString(moduleNameValue) ? cellToString(moduleNameValue) : null;
   const resolvedQty = parsedQty ?? fallbackQty;
 
   const hasItemContent = Boolean(description || productNumber);
@@ -209,6 +219,7 @@ const toLine = ({
       qty: finalQty,
       product_number: productNumber || null,
       description: description || null,
+      module_name_raw: moduleNameRaw,
     },
     line_type: lineType,
     warnings: [],
@@ -381,6 +392,7 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
       qty: resolvedQty,
       product_number: line.parsed.product_number,
       description: line.parsed.description,
+      module_name_raw: line.parsed.module_name_raw,
       device_type: deviceType.device_type,
       line_type: line.parsed.is_anchor ? "anchor" : "item",
       raw_ref: {

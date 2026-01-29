@@ -70,6 +70,7 @@ export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir 
         qty: item?.qty ?? null,
         product_number: item?.product_number ?? null,
         description: item?.description ?? null,
+        module_name_raw: item?.module_name_raw ?? null,
         device_type: item?.device_type ?? null,
         line_type: item?.line_type ?? null,
       })),
