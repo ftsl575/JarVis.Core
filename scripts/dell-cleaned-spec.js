@@ -93,6 +93,14 @@ const NON_PHYSICAL_DEVICE_TYPES = new Set([
 
 const normalizeText = (value) => (value === null || value === undefined ? "" : String(value).trim());
 
+const resolveDeviceTypeForOutput = (item) => {
+  const lineType = normalizeText(item?.line_type).toLowerCase();
+  if (lineType !== "anchor") {
+    return "Unclear";
+  }
+  return normalizeText(item?.device_type);
+};
+
 const resolveRowClass = (item) => {
   const deviceType = normalizeText(item?.device_type).toLowerCase();
   const lineType = normalizeText(item?.line_type).toLowerCase();
@@ -116,12 +124,13 @@ const buildSegmentTableRows = ({ segment, items }) => {
 
   if (anchorItem) {
     const anchorSource = parseSourceRef(anchorItem?.source_ref);
+    const anchorDeviceType = resolveDeviceTypeForOutput(anchorItem);
     rows.push([
       1,
       normalizeNumber(anchorItem?.qty ?? ""),
       resolvePartNumber(anchorItem),
       anchorItem?.description ?? "",
-      anchorItem?.device_type ?? "",
+      anchorDeviceType,
       anchorItem?.line_type ?? "",
       anchorSource.file,
       anchorSource.sheet,
@@ -136,12 +145,13 @@ const buildSegmentTableRows = ({ segment, items }) => {
       continue;
     }
     const source = parseSourceRef(item?.source_ref);
+    const deviceType = resolveDeviceTypeForOutput(item);
     const row = [
       "",
       normalizeNumber(item?.qty ?? ""),
       resolvePartNumber(item),
       item?.description ?? "",
-      item?.device_type ?? "",
+      deviceType,
       item?.line_type ?? "",
       source.file,
       source.sheet,

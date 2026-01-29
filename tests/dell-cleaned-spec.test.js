@@ -132,7 +132,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       4,
       "MEM740",
       "Memory DIMM",
-      "memory",
+      "Unclear",
       "item",
     ]);
 
@@ -142,7 +142,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       1,
       "SVC-1",
       "Support plan",
-      "support",
+      "Unclear",
       "item",
     ]);
 
@@ -152,7 +152,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       1,
       "BIOSTUNE",
       "BIOS Setting",
-      "configuration",
+      "Unclear",
       "attribute",
     ]);
   } finally {

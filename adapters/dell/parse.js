@@ -374,15 +374,22 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
     result.canonicalRecords[selectedIndex].parsed.is_anchor = true;
   }
 
-  for (const line of result.canonicalRecords) {
-    if (line.line_type !== "item" && !line.parsed.is_anchor) {
-      continue;
+  const resolveDeviceType = (line) => {
+    if (!line?.parsed?.is_anchor) {
+      return "Unclear";
     }
     const deviceType = classifyDeviceType({
       description: line.parsed.description,
       vendor: line.source.vendor,
       partNumber: line.parsed.product_number,
     });
+    return deviceType.device_type;
+  };
+
+  for (const line of result.canonicalRecords) {
+    if (line.line_type !== "item" && !line.parsed.is_anchor) {
+      continue;
+    }
     const resolvedQty =
       Number.isFinite(line.parsed.qty) && line.parsed.qty > 0 ? line.parsed.qty : 1;
     result.itemsExported += 1;
@@ -393,7 +400,7 @@ export const parseDellWorkbook = (inputPath, { inputDir } = {}) => {
       product_number: line.parsed.product_number,
       description: line.parsed.description,
       module_name_raw: line.parsed.module_name_raw,
-      device_type: deviceType.device_type,
+      device_type: resolveDeviceType(line),
       line_type: line.parsed.is_anchor ? "anchor" : "item",
       raw_ref: {
         file: line.source.file,
