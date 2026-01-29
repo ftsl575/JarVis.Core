@@ -39,6 +39,10 @@ const resolveSegmentItems = ({ segment, itemLookup }) => {
   });
 };
 
+const resolveDeviceTypeForDell = (item) => {
+  return item?.line_type === "anchor" ? "Server" : "Unclear";
+};
+
 const DEFAULT_OUT_DIR = "C:\\Users\\G\\Desktop\\JarVis\\JarVis.Core\\out";
 
 export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir }) => {
@@ -71,7 +75,7 @@ export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir 
         product_number: item?.product_number ?? null,
         description: item?.description ?? null,
         module_name_raw: item?.module_name_raw ?? null,
-        device_type: item?.device_type ?? null,
+        device_type: resolveDeviceTypeForDell(item),
         line_type: item?.line_type ?? null,
       })),
       meta,

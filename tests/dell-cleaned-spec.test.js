@@ -116,7 +116,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       2,
       "R740",
       "PowerEdge R740 Server",
-      "server",
+      "Server",
       "anchor",
     ]);
     assert.deepEqual(anchorRow.slice(6, 10), [
