@@ -10,3 +10,6 @@
 - Test input specifications: `C:\Users\G\Desktop\JarVis\JarVis.Core\diag\_batch_inputs`
 - Batch run output folder: `C:\Users\G\Desktop\JarVis\JarVis.Core\diag`
 - Last run artifacts: `C:\Users\G\Desktop\JarVis\JarVis.Core\out`
+
+## Output artifacts contract
+- [Dell output artifacts contract (out/ vs diag/)](OUTPUT_ARTIFACTS_CONTRACT.md)
