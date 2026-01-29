@@ -98,7 +98,7 @@ const resolveDeviceTypeForOutput = (item) => {
   if (lineType !== "anchor") {
     return "Unclear";
   }
-  return normalizeText(item?.device_type);
+  return "Server";
 };
 
 const resolveRowClass = (item) => {
