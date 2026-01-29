@@ -59,12 +59,13 @@ This section defines the **normative policy** for the Dell input column labeled 
 - It is relevant **only to downstream consumers** of the cleaned spec as an informational label; it is **not** a structural anchor.
 
 ### 8.2 Outcome B — Disallowed for Semantic Use (Authoritative)
-Because Module Name is **free-text**, it **MUST NOT** be used as a semantic hint for classification, grouping, or device-type inference in Dell cleaned spec.
+Because Module Name is **free-text**, the requested use of Module Name as a **deterministic semantic hint** is **rejected** in Dell cleaned spec. It **MUST NOT** be used for classification, grouping, or device-type inference.
 
 **Allowed (Deterministic, Non-Semantic):**
 - **Pass-through only:** Module Name MAY be surfaced as an **informational field** in the cleaned spec **without** affecting identifiers, grouping, or line typing.
 - **Missing/empty:** If Module Name is missing or empty, behavior is **unchanged**; existing identification and line-type rules remain the sole basis.
 - **Normalization layer:** The **existing identification system remains the only normalizing layer**; Module Name cannot override, refine, or replace it.
+- **No implicit mapping:** Module Name is **not** a required or expected 1:1 mapping to any device type, and it **cannot** be treated as one.
 
 **Disallowed (Always):**
 - Any **fuzzy matching**, keyword inference, ML/probabilistic mapping, or synonym expansion based on Module Name.
