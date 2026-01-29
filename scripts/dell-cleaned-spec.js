@@ -14,6 +14,7 @@ const TABLE_HEADERS = [
   "Source Sheet",
   "Source Row",
   "Item ID",
+  "Module Name",
 ];
 
 const usage = () => {
@@ -37,8 +38,19 @@ const normalizeNumber = (value) => {
   return value;
 };
 
+const normalizeModuleName = (value) => (value === null || value === undefined ? "" : String(value));
+
 const resolvePartNumber = (item) =>
   item?.product_number ?? item?.part_number ?? item?.partNumber ?? item?.product ?? "";
+
+const resolveModuleNameRaw = (item) =>
+  normalizeModuleName(
+    item?.module_name ??
+      item?.moduleName ??
+      item?.moduleNameRaw ??
+      item?.module_name_raw ??
+      item?.["Module Name"]
+  );
 
 const parseSourceRef = (sourceRef) => {
   if (typeof sourceRef !== "string") {
@@ -115,6 +127,7 @@ const buildSegmentTableRows = ({ segment, items }) => {
       anchorSource.sheet,
       normalizeNumber(anchorSource.row),
       anchorItem?.source_ref ?? "",
+      resolveModuleNameRaw(anchorItem),
     ]);
   }
 
@@ -134,6 +147,7 @@ const buildSegmentTableRows = ({ segment, items }) => {
       source.sheet,
       normalizeNumber(source.row),
       item?.source_ref ?? "",
+      resolveModuleNameRaw(item),
     ];
     const rowClass = resolveRowClass(item);
     if (rowClass === "service_tail") {
