@@ -80,38 +80,105 @@ const resolveAnchorItem = ({ segment, items }) => {
   return items.find((item) => item?.line_type === "anchor") ?? null;
 };
 
-const NON_PHYSICAL_DEVICE_TYPES = new Set([
-  "software",
-  "license",
-  "support",
-  "service",
-  "warranty",
-  "deployment",
-  "subscription",
-  "enablement",
-]);
-
 const normalizeText = (value) => (value === null || value === undefined ? "" : String(value).trim());
 
-const resolveDeviceTypeForOutput = (item) => {
+const normalizeDeviceType = (value) => normalizeText(value).toLowerCase();
+
+const CONFIGURATION_DEVICE_TYPES = new Set(["configuration", "enablement"]);
+
+const SOFTWARE_LICENSE_DEVICE_TYPES = new Set(["software", "license"]);
+
+const SERVICE_DEVICE_TYPES = new Set(["service", "support", "warranty", "deployment", "subscription"]);
+
+const META_DEVICE_TYPES = new Set([
+  "documentation",
+  "logistics",
+  "regulatory",
+  "shipping",
+  "label",
+  "asset",
+  "tracking",
+]);
+
+const PHYSICAL_DEVICE_TYPES = new Set([
+  "network adapter",
+  "psu",
+  "power cord",
+  "raid controller",
+  "nvme",
+  "ssd",
+  "hdd",
+  "cpu",
+  "memory",
+  "backplane",
+  "battery",
+  "blade chassis",
+  "cable",
+  "cooling module",
+  "disk enclosure",
+  "drive cage",
+  "fabric interconnect",
+  "fan",
+  "firewall",
+  "gpu",
+  "hba",
+  "network interface card",
+  "network switch",
+  "pdu",
+  "ram",
+  "rail kit",
+  "router",
+  "tape library",
+  "transceiver",
+  "ups",
+  "bezel",
+  "hardware (accessory)",
+  "riser kit",
+]);
+
+const resolveSemanticClass = (item) => {
   const lineType = normalizeText(item?.line_type).toLowerCase();
-  if (lineType !== "anchor") {
-    return "Unclear";
+  const deviceType = normalizeDeviceType(item?.device_type);
+
+  if (lineType === "anchor") {
+    return "SYSTEM";
   }
-  return "Server";
+  if (lineType === "attribute") {
+    return "CONFIGURATION";
+  }
+  if (lineType === "meta" || lineType === "footer") {
+    return "META";
+  }
+  if (CONFIGURATION_DEVICE_TYPES.has(deviceType)) {
+    return "CONFIGURATION";
+  }
+  if (SOFTWARE_LICENSE_DEVICE_TYPES.has(deviceType)) {
+    return "SOFTWARE/LICENSE";
+  }
+  if (SERVICE_DEVICE_TYPES.has(deviceType)) {
+    return "SERVICE";
+  }
+  if (META_DEVICE_TYPES.has(deviceType)) {
+    return "META";
+  }
+  if (PHYSICAL_DEVICE_TYPES.has(deviceType)) {
+    return "PHYSICAL_COMPONENT";
+  }
+  if (lineType === "item" || lineType === "unknown" || !lineType) {
+    return "PHYSICAL_COMPONENT";
+  }
+  return "META";
 };
 
-const resolveRowClass = (item) => {
-  const deviceType = normalizeText(item?.device_type).toLowerCase();
-  const lineType = normalizeText(item?.line_type).toLowerCase();
-
-  if (lineType === "attribute" || deviceType === "configuration") {
-    return "service_tail";
+const resolveDeviceTypeForOutput = (item, semanticClass) => {
+  if (semanticClass !== "SYSTEM") {
+    return "";
   }
-  if (NON_PHYSICAL_DEVICE_TYPES.has(deviceType)) {
-    return "non_physical";
+  const deviceType = normalizeText(item?.device_type);
+  if (!deviceType || normalizeDeviceType(deviceType) === "unclear") {
+    return "Server";
   }
-  return "physical";
+  return deviceType;
 };
 
 const buildSegmentTableRows = ({ segment, items }) => {
@@ -124,14 +191,15 @@ const buildSegmentTableRows = ({ segment, items }) => {
 
   if (anchorItem) {
     const anchorSource = parseSourceRef(anchorItem?.source_ref);
-    const anchorDeviceType = resolveDeviceTypeForOutput(anchorItem);
+    const anchorClass = resolveSemanticClass(anchorItem);
+    const anchorDeviceType = resolveDeviceTypeForOutput(anchorItem, anchorClass);
     rows.push([
       1,
       normalizeNumber(anchorItem?.qty ?? ""),
       resolvePartNumber(anchorItem),
       anchorItem?.description ?? "",
       anchorDeviceType,
-      anchorItem?.line_type ?? "",
+      anchorClass,
       anchorSource.file,
       anchorSource.sheet,
       normalizeNumber(anchorSource.row),
@@ -145,28 +213,30 @@ const buildSegmentTableRows = ({ segment, items }) => {
       continue;
     }
     const source = parseSourceRef(item?.source_ref);
-    const deviceType = resolveDeviceTypeForOutput(item);
+    const semanticClass = resolveSemanticClass(item);
+    const deviceType = resolveDeviceTypeForOutput(item, semanticClass);
     const row = [
       "",
       normalizeNumber(item?.qty ?? ""),
       resolvePartNumber(item),
       item?.description ?? "",
       deviceType,
-      item?.line_type ?? "",
+      semanticClass,
       source.file,
       source.sheet,
       normalizeNumber(source.row),
       item?.source_ref ?? "",
       resolveModuleNameRaw(item),
     ];
-    const rowClass = resolveRowClass(item);
-    if (rowClass === "service_tail") {
+    if (semanticClass === "CONFIGURATION") {
       serviceTailRows.push(row);
-    } else if (rowClass === "non_physical") {
-      nonPhysicalRows.push(row);
-    } else {
-      physicalRows.push(row);
+      continue;
     }
+    if (semanticClass === "SOFTWARE/LICENSE" || semanticClass === "SERVICE" || semanticClass === "META") {
+      nonPhysicalRows.push(row);
+      continue;
+    }
+    physicalRows.push(row);
   }
 
   return rows.concat(physicalRows, nonPhysicalRows, serviceTailRows);

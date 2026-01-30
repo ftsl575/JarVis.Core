@@ -48,7 +48,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           qty: 2,
           product_number: "R740",
           description: "PowerEdge R740 Server",
-          device_type: "server",
+          device_type: "Server",
           line_type: "anchor",
         },
         {
@@ -117,7 +117,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       "R740",
       "PowerEdge R740 Server",
       "Server",
-      "anchor",
+      "SYSTEM",
     ]);
     assert.deepEqual(anchorRow.slice(6, 10), [
       "dl2.xlsx",
@@ -132,8 +132,8 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       4,
       "MEM740",
       "Memory DIMM",
-      "Unclear",
-      "item",
+      "",
+      "PHYSICAL_COMPONENT",
     ]);
 
     const supportRow = rows[tableHeaderIndex + 3];
@@ -142,8 +142,8 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       1,
       "SVC-1",
       "Support plan",
-      "Unclear",
-      "item",
+      "",
+      "SERVICE",
     ]);
 
     const attributeRow = rows[tableHeaderIndex + 4];
@@ -152,8 +152,8 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       1,
       "BIOSTUNE",
       "BIOS Setting",
-      "Unclear",
-      "attribute",
+      "",
+      "CONFIGURATION",
     ]);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
