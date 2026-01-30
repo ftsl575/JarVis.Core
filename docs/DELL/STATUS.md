@@ -13,6 +13,7 @@
 ## References
 - PR #96
 - PR #97
+- [Dell cleaned spec semantic model v2 (documentation)](CLEANED_SPEC_SEMANTIC_MODEL_v2.md)
 
 ## How to verify locally (PowerShell; absolute paths)
 ```powershell
