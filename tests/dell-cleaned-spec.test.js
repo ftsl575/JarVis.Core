@@ -57,6 +57,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           product_number: "MEM740",
           description: "Memory DIMM",
           device_type: "memory",
+          component_type: "Memory",
           line_type: "item",
         },
         {
@@ -74,6 +75,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           description: "Support plan",
           device_type: "support",
           line_type: "item",
+          semantic_class: "SERVICE",
         },
         {
           source_ref: "dl2.xlsx::BOM::6",
@@ -83,6 +85,14 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           device_type: "",
           line_type: "item",
           semantic_class: "SERVICE",
+        },
+        {
+          source_ref: "dl2.xlsx::BOM::7",
+          qty: 1,
+          product_number: "MISC-1",
+          description: "Misc component",
+          device_type: "",
+          line_type: "item",
         },
       ],
       meta: { schema_version: 1 },
@@ -125,7 +135,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       2,
       "R740",
       "PowerEdge R740 Server",
-      "Server",
+      "SERVER",
       "SYSTEM",
     ]);
     assert.deepEqual(anchorRow.slice(6, 10), [
@@ -141,48 +151,66 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       4,
       "MEM740",
       "Memory DIMM",
-      "",
+      "RAM",
       "PHYSICAL_COMPONENT",
     ]);
 
-    const supportRow = rows[tableHeaderIndex + 3];
+    const miscRow = rows[tableHeaderIndex + 3];
+    assert.deepEqual(miscRow.slice(0, 6), [
+      "",
+      1,
+      "MISC-1",
+      "Misc component",
+      "UNCLEAR",
+      "PHYSICAL_COMPONENT",
+    ]);
+
+    const supportRow = rows[tableHeaderIndex + 4];
     assert.deepEqual(supportRow.slice(0, 6), [
       "",
       1,
       "SVC-1",
       "Support plan",
-      "",
+      "SERVICE",
       "SERVICE",
     ]);
 
-    const deploymentRow = rows[tableHeaderIndex + 4];
+    const deploymentRow = rows[tableHeaderIndex + 5];
     assert.deepEqual(deploymentRow.slice(0, 6), [
       "",
       1,
       "SVC-2",
       "Deployment",
-      "",
+      "SERVICE",
       "SERVICE",
     ]);
 
-    const attributeRow = rows[tableHeaderIndex + 5];
+    const attributeRow = rows[tableHeaderIndex + 6];
     assert.deepEqual(attributeRow.slice(0, 6), [
       "",
       1,
       "BIOSTUNE",
       "BIOS Setting",
-      "",
+      "CONFIGURATION",
       "CONFIGURATION",
     ]);
 
     const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+    const unclearRows = tableRows.filter((row) => row[4] === "UNCLEAR");
     for (const row of tableRows) {
       assert.ok(row[5], "Expected semantic class column to be populated");
-      if (row[5] !== "SYSTEM") {
-        assert.equal(row[4], "", "Expected device_type to be empty for non-system rows");
-      }
+      assert.ok(row[4], "Expected device_type to be populated");
     }
     assert.equal(memoryRow[5], "PHYSICAL_COMPONENT");
+    assert.equal(unclearRows.length, 1);
+    assert.deepEqual(unclearRows[0].slice(0, 6), [
+      "",
+      1,
+      "MISC-1",
+      "Misc component",
+      "UNCLEAR",
+      "PHYSICAL_COMPONENT",
+    ]);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
