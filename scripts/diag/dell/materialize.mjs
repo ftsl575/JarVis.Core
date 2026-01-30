@@ -46,6 +46,23 @@ const resolveDeviceTypeForDell = (item) => {
   return item?.line_type === "anchor" ? "Server" : null;
 };
 
+const STRUCTURED_FIELDS = [
+  "component_type",
+  "category",
+  "feature_group",
+  "item_type",
+  "option_type",
+  "line_item_type",
+];
+
+const appendStructuredFields = (payload, item) => {
+  for (const field of STRUCTURED_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(item ?? {}, field)) {
+      payload[field] = item[field];
+    }
+  }
+};
+
 const DEFAULT_OUT_DIR = "C:\\Users\\G\\Desktop\\JarVis\\JarVis.Core\\out";
 
 export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir }) => {
@@ -83,6 +100,10 @@ export const materializeDellSegments = async ({ segmentsPath, itemsPath, outDir 
       })),
       meta,
     };
+    for (const itemPayload of payload.items) {
+      const sourceItem = itemLookup.get(itemPayload.source_ref);
+      appendStructuredFields(itemPayload, sourceItem);
+    }
     await fs.promises.writeFile(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   }
 };

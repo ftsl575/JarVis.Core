@@ -75,7 +75,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           description: "Support plan",
           device_type: "support",
           line_type: "item",
-          semantic_class: "SERVICE",
+          item_type: "Service",
         },
         {
           source_ref: "dl2.xlsx::BOM::6",
@@ -84,7 +84,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           description: "Deployment",
           device_type: "",
           line_type: "item",
-          semantic_class: "SERVICE",
+          category: "Service",
         },
         {
           source_ref: "dl2.xlsx::BOM::7",
