@@ -82,72 +82,7 @@ const resolveAnchorItem = ({ segment, items }) => {
 
 const normalizeText = (value) => (value === null || value === undefined ? "" : String(value).trim());
 
-const normalizeSemanticClassToken = (value) =>
-  normalizeText(value).replace(/[^\w/]+/g, "_").replace(/\//g, "_").toUpperCase();
-
-const SEMANTIC_CLASS_ALIASES = new Map([
-  ["SYSTEM", "SYSTEM"],
-  ["SERVER", "SYSTEM"],
-  ["BASE_SYSTEM", "SYSTEM"],
-  ["PHYSICAL_COMPONENT", "PHYSICAL_COMPONENT"],
-  ["PHYSICAL", "PHYSICAL_COMPONENT"],
-  ["COMPONENT", "PHYSICAL_COMPONENT"],
-  ["CONFIGURATION", "CONFIGURATION"],
-  ["SOFTWARE_LICENSE", "SOFTWARE_LICENSE"],
-  ["SOFTWARE_LICENCE", "SOFTWARE_LICENSE"],
-  ["SOFTWARE", "SOFTWARE_LICENSE"],
-  ["LICENSE", "SOFTWARE_LICENSE"],
-  ["SERVICE", "SERVICE"],
-  ["META", "META"],
-  ["LOGISTICS", "META"],
-  ["DOCUMENTATION", "META"],
-]);
-
-const resolveExplicitSemanticClass = (item) => {
-  const raw =
-    item?.semantic_class ??
-    item?.semanticClass ??
-    item?.row_type ??
-    item?.rowType ??
-    item?.row_kind ??
-    item?.rowKind ??
-    item?.semantic_type ??
-    item?.semanticType ??
-    "";
-  if (!raw) {
-    return "";
-  }
-  const token = normalizeSemanticClassToken(raw);
-  return SEMANTIC_CLASS_ALIASES.get(token) ?? "";
-};
-
-const resolveSemanticClass = (item) => {
-  const explicitClass = resolveExplicitSemanticClass(item);
-  if (explicitClass) {
-    return explicitClass;
-  }
-  const lineType = normalizeText(item?.line_type).toLowerCase();
-
-  if (lineType === "anchor") {
-    return "SYSTEM";
-  }
-  if (lineType === "attribute") {
-    return "CONFIGURATION";
-  }
-  if (lineType === "meta" || lineType === "footer") {
-    return "META";
-  }
-  if (lineType === "item" || lineType === "unknown" || !lineType) {
-    return "PHYSICAL_COMPONENT";
-  }
-  return "META";
-};
-
-const normalizeEnumValue = (value) =>
-  normalizeText(value)
-    .replace(/\s+/g, " ")
-    .replace(/_/g, " ")
-    .toUpperCase();
+const normalizeLineRole = (value) => normalizeText(value).toLowerCase();
 
 const STRUCTURED_FIELD_SPECS = [
   {
@@ -184,31 +119,41 @@ const STRUCTURED_FIELD_SPECS = [
   },
 ];
 
-const DEVICE_TYPE_ENUM_MAP = new Map([
+const LINE_TYPE_ENUM_MAP = new Map([
+  ["Service", "SERVICE"],
+  ["Services", "SERVICE"],
+  ["Support", "SERVICE"],
+  ["Warranty", "SERVICE"],
+  ["Maintenance", "SERVICE"],
+  ["Software", "SOFTWARE_LICENSE"],
+  ["Software License", "SOFTWARE_LICENSE"],
+  ["License", "SOFTWARE_LICENSE"],
+]);
+
+const PHYSICAL_DEVICE_TYPE_ENUM_MAP = new Map([
   ["CPU", "CPU"],
-  ["PROCESSOR", "CPU"],
-  ["CENTRAL PROCESSING UNIT", "CPU"],
-  ["MEMORY", "RAM"],
-  ["MEMORY MODULE", "RAM"],
+  ["Processor", "CPU"],
+  ["Memory", "RAM"],
+  ["Memory Module", "RAM"],
   ["RAM", "RAM"],
   ["DIMM", "RAM"],
   ["SSD", "SSD"],
-  ["SOLID STATE DRIVE", "SSD"],
+  ["Solid State Drive", "SSD"],
   ["HDD", "HDD"],
-  ["HARD DRIVE", "HDD"],
-  ["HARD DISK DRIVE", "HDD"],
+  ["Hard Drive", "HDD"],
+  ["Hard Disk Drive", "HDD"],
   ["PSU", "PSU"],
-  ["POWER SUPPLY", "PSU"],
-  ["POWER SUPPLY UNIT", "PSU"],
-  ["RAID CONTROLLER", "RAID_CONTROLLER"],
-  ["RAID CONTROLLER CARD", "RAID_CONTROLLER"],
+  ["Power Supply", "PSU"],
+  ["Power Supply Unit", "PSU"],
+  ["RAID Controller", "RAID_CONTROLLER"],
+  ["RAID Controller Card", "RAID_CONTROLLER"],
   ["NIC", "NIC"],
-  ["NETWORK ADAPTER", "NIC"],
-  ["NETWORK INTERFACE CARD", "NIC"],
+  ["Network Adapter", "NIC"],
+  ["Network Interface Card", "NIC"],
   ["GPU", "GPU"],
-  ["GRAPHICS", "GPU"],
-  ["GRAPHICS CARD", "GPU"],
-  ["VIDEO CARD", "GPU"],
+  ["Graphics", "GPU"],
+  ["Graphics Card", "GPU"],
+  ["Video Card", "GPU"],
 ]);
 
 const getStructuredFieldValue = (item, keys) => {
@@ -220,23 +165,51 @@ const getStructuredFieldValue = (item, keys) => {
   return undefined;
 };
 
-const inferPhysicalDeviceType = (item) => {
+const resolveStructuredEnumMatch = (item, enumMap) => {
   for (const field of STRUCTURED_FIELD_SPECS) {
     const rawValue = getStructuredFieldValue(item, field.keys);
     if (rawValue === null || rawValue === undefined || rawValue === "") {
       continue;
     }
-    const normalized = normalizeEnumValue(rawValue);
-    const mapped = DEVICE_TYPE_ENUM_MAP.get(normalized);
+    if (typeof rawValue !== "string") {
+      continue;
+    }
+    const mapped = enumMap.get(rawValue);
     if (mapped) {
       return mapped;
     }
   }
-  return "UNCLEAR";
+  return null;
 };
 
-const inferDellDeviceType = (item, semanticClass) => {
-  switch (semanticClass) {
+const inferDellLineType = (item) => {
+  const lineRole = normalizeLineRole(item?.line_type);
+  if (lineRole === "anchor") {
+    return "SYSTEM";
+  }
+  if (lineRole === "attribute") {
+    return "CONFIGURATION";
+  }
+  if (lineRole === "meta" || lineRole === "footer") {
+    return "META";
+  }
+
+  const structuredLineType = resolveStructuredEnumMatch(item, LINE_TYPE_ENUM_MAP);
+  if (structuredLineType) {
+    return structuredLineType;
+  }
+
+  if (lineRole === "item" || lineRole === "unknown" || !lineRole) {
+    return "PHYSICAL_COMPONENT";
+  }
+  return "PHYSICAL_COMPONENT";
+};
+
+const inferPhysicalDeviceType = (item) =>
+  resolveStructuredEnumMatch(item, PHYSICAL_DEVICE_TYPE_ENUM_MAP) ?? "UNCLEAR";
+
+const inferDellDeviceType = (item, lineType) => {
+  switch (lineType) {
     case "SYSTEM":
       return "SERVER";
     case "CONFIGURATION":
@@ -264,15 +237,15 @@ const buildSegmentTableRows = ({ segment, items }) => {
 
   if (anchorItem) {
     const anchorSource = parseSourceRef(anchorItem?.source_ref);
-    const anchorClass = resolveSemanticClass(anchorItem);
-    const anchorDeviceType = inferDellDeviceType(anchorItem, anchorClass);
+    const anchorLineType = inferDellLineType(anchorItem);
+    const anchorDeviceType = inferDellDeviceType(anchorItem, anchorLineType);
     rows.push([
       1,
       normalizeNumber(anchorItem?.qty ?? ""),
       resolvePartNumber(anchorItem),
       anchorItem?.description ?? "",
       anchorDeviceType,
-      anchorClass,
+      anchorLineType,
       anchorSource.file,
       anchorSource.sheet,
       normalizeNumber(anchorSource.row),
@@ -286,26 +259,26 @@ const buildSegmentTableRows = ({ segment, items }) => {
       continue;
     }
     const source = parseSourceRef(item?.source_ref);
-    const semanticClass = resolveSemanticClass(item);
-    const deviceType = inferDellDeviceType(item, semanticClass);
+    const lineType = inferDellLineType(item);
+    const deviceType = inferDellDeviceType(item, lineType);
     const row = [
       "",
       normalizeNumber(item?.qty ?? ""),
       resolvePartNumber(item),
       item?.description ?? "",
       deviceType,
-      semanticClass,
+      lineType,
       source.file,
       source.sheet,
       normalizeNumber(source.row),
       item?.source_ref ?? "",
       resolveModuleNameRaw(item),
     ];
-    if (semanticClass === "CONFIGURATION") {
+    if (lineType === "CONFIGURATION") {
       serviceTailRows.push(row);
       continue;
     }
-    if (semanticClass === "SOFTWARE_LICENSE" || semanticClass === "SERVICE" || semanticClass === "META") {
+    if (lineType === "SOFTWARE_LICENSE" || lineType === "SERVICE" || lineType === "META") {
       nonPhysicalRows.push(row);
       continue;
     }
