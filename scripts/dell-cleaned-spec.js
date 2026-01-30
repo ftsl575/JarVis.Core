@@ -84,6 +84,45 @@ const normalizeText = (value) => (value === null || value === undefined ? "" : S
 
 const normalizeDeviceType = (value) => normalizeText(value).toLowerCase();
 
+const normalizeSemanticClassToken = (value) =>
+  normalizeText(value).replace(/[^\w/]+/g, "_").replace(/\//g, "_").toUpperCase();
+
+const SEMANTIC_CLASS_ALIASES = new Map([
+  ["SYSTEM", "SYSTEM"],
+  ["SERVER", "SYSTEM"],
+  ["BASE_SYSTEM", "SYSTEM"],
+  ["PHYSICAL_COMPONENT", "PHYSICAL_COMPONENT"],
+  ["PHYSICAL", "PHYSICAL_COMPONENT"],
+  ["COMPONENT", "PHYSICAL_COMPONENT"],
+  ["CONFIGURATION", "CONFIGURATION"],
+  ["SOFTWARE_LICENSE", "SOFTWARE/LICENSE"],
+  ["SOFTWARE_LICENCE", "SOFTWARE/LICENSE"],
+  ["SOFTWARE", "SOFTWARE/LICENSE"],
+  ["LICENSE", "SOFTWARE/LICENSE"],
+  ["SERVICE", "SERVICE"],
+  ["META", "META"],
+  ["LOGISTICS", "META"],
+  ["DOCUMENTATION", "META"],
+]);
+
+const resolveExplicitSemanticClass = (item) => {
+  const raw =
+    item?.semantic_class ??
+    item?.semanticClass ??
+    item?.row_type ??
+    item?.rowType ??
+    item?.row_kind ??
+    item?.rowKind ??
+    item?.semantic_type ??
+    item?.semanticType ??
+    "";
+  if (!raw) {
+    return "";
+  }
+  const token = normalizeSemanticClassToken(raw);
+  return SEMANTIC_CLASS_ALIASES.get(token) ?? "";
+};
+
 const CONFIGURATION_DEVICE_TYPES = new Set(["configuration", "enablement"]);
 
 const SOFTWARE_LICENSE_DEVICE_TYPES = new Set(["software", "license"]);
@@ -137,6 +176,10 @@ const PHYSICAL_DEVICE_TYPES = new Set([
 ]);
 
 const resolveSemanticClass = (item) => {
+  const explicitClass = resolveExplicitSemanticClass(item);
+  if (explicitClass) {
+    return explicitClass;
+  }
   const lineType = normalizeText(item?.line_type).toLowerCase();
   const deviceType = normalizeDeviceType(item?.device_type);
 
@@ -174,11 +217,7 @@ const resolveDeviceTypeForOutput = (item, semanticClass) => {
   if (semanticClass !== "SYSTEM") {
     return "";
   }
-  const deviceType = normalizeText(item?.device_type);
-  if (!deviceType || normalizeDeviceType(deviceType) === "unclear") {
-    return "Server";
-  }
-  return deviceType;
+  return normalizeText(item?.device_type);
 };
 
 const buildSegmentTableRows = ({ segment, items }) => {
