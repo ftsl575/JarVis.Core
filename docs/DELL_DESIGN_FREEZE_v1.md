@@ -46,9 +46,32 @@ The following line roles are **locked** and MUST be used consistently:
 
 ## 7) Explicit Non-Goals (v1)
 - **No HPE/Dell unification.**
-- **No automatic device-type inference.**
-- **No text-based heuristics.**
+- **No heuristic or free-text device-type inference.**
 - **No changes to Stage 1 behavior.**
+
+## 7.1) Design Update — Semantic Model v2.1 (Locked, Documentation-Only)
+This section **explicitly permits** the **semantic model v2.1** for Dell documentation while preserving the v1 constraints.
+
+### 7.1.1 Scope and non-impact
+- This section is **documentation-only** and does **not** change Stage 1–4 behavior.
+- All rules remain **deterministic**; no ML, probabilistic logic, or free-text heuristics are allowed.
+- Module Name remains **non-authoritative** and **MUST NOT** be used for inference.
+
+### 7.1.2 Line type vs. device type (v2.1)
+- **line_type** is a **high-level class** and MUST be one of:
+  - SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE / META.
+- **device_type** is a **mandatory, non-empty, detailed row kind** for **every row**.
+- The two fields serve different purposes and **MUST NOT** be conflated.
+
+### 7.1.3 Canonical device_type enums (v2.1)
+- **SYSTEM** rows: device_type MUST be **SERVER** (canonical value; SYSTEM MAY be used only if explicitly documented elsewhere).
+- **PHYSICAL_COMPONENT** rows: device_type MUST be one of (minimum set)
+  - CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, CHASSIS_PART.
+- **CONFIGURATION** rows: device_type MUST be **CONFIGURATION**.
+- **SOFTWARE_LICENSE** rows: device_type MUST be **SOFTWARE_LICENSE**.
+- **SERVICE** rows: device_type MUST be **SERVICE**.
+- **META** rows: device_type MUST be **META**.
+- **Fallback:** if a deterministic mapping cannot be established, device_type MUST be **UNCLEAR** (non-empty, deterministic).
 
 ## 8) Module Name Policy (Dell-Only, Frozen)
 This section defines the **normative policy** for the Dell input column labeled **“Module Name.”**
