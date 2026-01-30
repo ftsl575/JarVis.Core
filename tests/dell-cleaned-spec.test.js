@@ -75,6 +75,15 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           device_type: "support",
           line_type: "item",
         },
+        {
+          source_ref: "dl2.xlsx::BOM::6",
+          qty: 1,
+          product_number: "SVC-2",
+          description: "Deployment",
+          device_type: "",
+          line_type: "item",
+          semantic_class: "SERVICE",
+        },
       ],
       meta: { schema_version: 1 },
     };
@@ -146,7 +155,17 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       "SERVICE",
     ]);
 
-    const attributeRow = rows[tableHeaderIndex + 4];
+    const deploymentRow = rows[tableHeaderIndex + 4];
+    assert.deepEqual(deploymentRow.slice(0, 6), [
+      "",
+      1,
+      "SVC-2",
+      "Deployment",
+      "",
+      "SERVICE",
+    ]);
+
+    const attributeRow = rows[tableHeaderIndex + 5];
     assert.deepEqual(attributeRow.slice(0, 6), [
       "",
       1,
@@ -155,6 +174,15 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
       "",
       "CONFIGURATION",
     ]);
+
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+    for (const row of tableRows) {
+      assert.ok(row[5], "Expected semantic class column to be populated");
+      if (row[5] !== "SYSTEM") {
+        assert.equal(row[4], "", "Expected device_type to be empty for non-system rows");
+      }
+    }
+    assert.equal(memoryRow[5], "PHYSICAL_COMPONENT");
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
