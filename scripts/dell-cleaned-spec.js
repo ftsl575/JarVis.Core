@@ -82,8 +82,6 @@ const resolveAnchorItem = ({ segment, items }) => {
 
 const normalizeText = (value) => (value === null || value === undefined ? "" : String(value).trim());
 
-const normalizeDeviceType = (value) => normalizeText(value).toLowerCase();
-
 const normalizeSemanticClassToken = (value) =>
   normalizeText(value).replace(/[^\w/]+/g, "_").replace(/\//g, "_").toUpperCase();
 
@@ -95,10 +93,10 @@ const SEMANTIC_CLASS_ALIASES = new Map([
   ["PHYSICAL", "PHYSICAL_COMPONENT"],
   ["COMPONENT", "PHYSICAL_COMPONENT"],
   ["CONFIGURATION", "CONFIGURATION"],
-  ["SOFTWARE_LICENSE", "SOFTWARE/LICENSE"],
-  ["SOFTWARE_LICENCE", "SOFTWARE/LICENSE"],
-  ["SOFTWARE", "SOFTWARE/LICENSE"],
-  ["LICENSE", "SOFTWARE/LICENSE"],
+  ["SOFTWARE_LICENSE", "SOFTWARE_LICENSE"],
+  ["SOFTWARE_LICENCE", "SOFTWARE_LICENSE"],
+  ["SOFTWARE", "SOFTWARE_LICENSE"],
+  ["LICENSE", "SOFTWARE_LICENSE"],
   ["SERVICE", "SERVICE"],
   ["META", "META"],
   ["LOGISTICS", "META"],
@@ -123,65 +121,12 @@ const resolveExplicitSemanticClass = (item) => {
   return SEMANTIC_CLASS_ALIASES.get(token) ?? "";
 };
 
-const CONFIGURATION_DEVICE_TYPES = new Set(["configuration", "enablement"]);
-
-const SOFTWARE_LICENSE_DEVICE_TYPES = new Set(["software", "license"]);
-
-const SERVICE_DEVICE_TYPES = new Set(["service", "support", "warranty", "deployment", "subscription"]);
-
-const META_DEVICE_TYPES = new Set([
-  "documentation",
-  "logistics",
-  "regulatory",
-  "shipping",
-  "label",
-  "asset",
-  "tracking",
-]);
-
-const PHYSICAL_DEVICE_TYPES = new Set([
-  "network adapter",
-  "psu",
-  "power cord",
-  "raid controller",
-  "nvme",
-  "ssd",
-  "hdd",
-  "cpu",
-  "memory",
-  "backplane",
-  "battery",
-  "blade chassis",
-  "cable",
-  "cooling module",
-  "disk enclosure",
-  "drive cage",
-  "fabric interconnect",
-  "fan",
-  "firewall",
-  "gpu",
-  "hba",
-  "network interface card",
-  "network switch",
-  "pdu",
-  "ram",
-  "rail kit",
-  "router",
-  "tape library",
-  "transceiver",
-  "ups",
-  "bezel",
-  "hardware (accessory)",
-  "riser kit",
-]);
-
 const resolveSemanticClass = (item) => {
   const explicitClass = resolveExplicitSemanticClass(item);
   if (explicitClass) {
     return explicitClass;
   }
   const lineType = normalizeText(item?.line_type).toLowerCase();
-  const deviceType = normalizeDeviceType(item?.device_type);
 
   if (lineType === "anchor") {
     return "SYSTEM";
@@ -192,32 +137,121 @@ const resolveSemanticClass = (item) => {
   if (lineType === "meta" || lineType === "footer") {
     return "META";
   }
-  if (CONFIGURATION_DEVICE_TYPES.has(deviceType)) {
-    return "CONFIGURATION";
-  }
-  if (SOFTWARE_LICENSE_DEVICE_TYPES.has(deviceType)) {
-    return "SOFTWARE/LICENSE";
-  }
-  if (SERVICE_DEVICE_TYPES.has(deviceType)) {
-    return "SERVICE";
-  }
-  if (META_DEVICE_TYPES.has(deviceType)) {
-    return "META";
-  }
-  if (PHYSICAL_DEVICE_TYPES.has(deviceType)) {
-    return "PHYSICAL_COMPONENT";
-  }
   if (lineType === "item" || lineType === "unknown" || !lineType) {
     return "PHYSICAL_COMPONENT";
   }
   return "META";
 };
 
-const resolveDeviceTypeForOutput = (item, semanticClass) => {
-  if (semanticClass !== "SYSTEM") {
-    return "";
+const normalizeEnumValue = (value) =>
+  normalizeText(value)
+    .replace(/\s+/g, " ")
+    .replace(/_/g, " ")
+    .toUpperCase();
+
+const STRUCTURED_FIELD_SPECS = [
+  {
+    label: "component_type",
+    keys: ["component_type", "componentType", "Component Type", "ComponentType"],
+  },
+  {
+    label: "category",
+    keys: ["category", "Category"],
+  },
+  {
+    label: "feature_group",
+    keys: [
+      "feature_group",
+      "featureGroup",
+      "Feature Group",
+      "Group / Feature Group",
+      "Group/Feature Group",
+      "group",
+      "Group",
+    ],
+  },
+  {
+    label: "item_type",
+    keys: ["item_type", "itemType", "Item Type", "ItemType"],
+  },
+  {
+    label: "option_type",
+    keys: ["option_type", "optionType", "Option Type", "OptionType"],
+  },
+  {
+    label: "line_item_type",
+    keys: ["line_item_type", "lineItemType", "Line Item Type", "LineItemType"],
+  },
+];
+
+const DEVICE_TYPE_ENUM_MAP = new Map([
+  ["CPU", "CPU"],
+  ["PROCESSOR", "CPU"],
+  ["CENTRAL PROCESSING UNIT", "CPU"],
+  ["MEMORY", "RAM"],
+  ["MEMORY MODULE", "RAM"],
+  ["RAM", "RAM"],
+  ["DIMM", "RAM"],
+  ["SSD", "SSD"],
+  ["SOLID STATE DRIVE", "SSD"],
+  ["HDD", "HDD"],
+  ["HARD DRIVE", "HDD"],
+  ["HARD DISK DRIVE", "HDD"],
+  ["PSU", "PSU"],
+  ["POWER SUPPLY", "PSU"],
+  ["POWER SUPPLY UNIT", "PSU"],
+  ["RAID CONTROLLER", "RAID_CONTROLLER"],
+  ["RAID CONTROLLER CARD", "RAID_CONTROLLER"],
+  ["NIC", "NIC"],
+  ["NETWORK ADAPTER", "NIC"],
+  ["NETWORK INTERFACE CARD", "NIC"],
+  ["GPU", "GPU"],
+  ["GRAPHICS", "GPU"],
+  ["GRAPHICS CARD", "GPU"],
+  ["VIDEO CARD", "GPU"],
+]);
+
+const getStructuredFieldValue = (item, keys) => {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(item ?? {}, key)) {
+      return item[key];
+    }
   }
-  return normalizeText(item?.device_type);
+  return undefined;
+};
+
+const inferPhysicalDeviceType = (item) => {
+  for (const field of STRUCTURED_FIELD_SPECS) {
+    const rawValue = getStructuredFieldValue(item, field.keys);
+    if (rawValue === null || rawValue === undefined || rawValue === "") {
+      continue;
+    }
+    const normalized = normalizeEnumValue(rawValue);
+    const mapped = DEVICE_TYPE_ENUM_MAP.get(normalized);
+    if (mapped) {
+      return mapped;
+    }
+  }
+  return "UNCLEAR";
+};
+
+const inferDellDeviceType = (item, semanticClass) => {
+  switch (semanticClass) {
+    case "SYSTEM":
+      return "SERVER";
+    case "CONFIGURATION":
+      return "CONFIGURATION";
+    case "SOFTWARE_LICENSE":
+      return "SOFTWARE_LICENSE";
+    case "SERVICE":
+      return "SERVICE";
+    case "META":
+      return "META";
+    case "PHYSICAL_COMPONENT":
+      return inferPhysicalDeviceType(item);
+    default:
+      return "UNCLEAR";
+  }
 };
 
 const buildSegmentTableRows = ({ segment, items }) => {
@@ -231,7 +265,7 @@ const buildSegmentTableRows = ({ segment, items }) => {
   if (anchorItem) {
     const anchorSource = parseSourceRef(anchorItem?.source_ref);
     const anchorClass = resolveSemanticClass(anchorItem);
-    const anchorDeviceType = resolveDeviceTypeForOutput(anchorItem, anchorClass);
+    const anchorDeviceType = inferDellDeviceType(anchorItem, anchorClass);
     rows.push([
       1,
       normalizeNumber(anchorItem?.qty ?? ""),
@@ -253,7 +287,7 @@ const buildSegmentTableRows = ({ segment, items }) => {
     }
     const source = parseSourceRef(item?.source_ref);
     const semanticClass = resolveSemanticClass(item);
-    const deviceType = resolveDeviceTypeForOutput(item, semanticClass);
+    const deviceType = inferDellDeviceType(item, semanticClass);
     const row = [
       "",
       normalizeNumber(item?.qty ?? ""),
@@ -271,7 +305,7 @@ const buildSegmentTableRows = ({ segment, items }) => {
       serviceTailRows.push(row);
       continue;
     }
-    if (semanticClass === "SOFTWARE/LICENSE" || semanticClass === "SERVICE" || semanticClass === "META") {
+    if (semanticClass === "SOFTWARE_LICENSE" || semanticClass === "SERVICE" || semanticClass === "META") {
       nonPhysicalRows.push(row);
       continue;
     }
