@@ -40,7 +40,10 @@ const resolveSegmentItems = ({ segment, itemLookup }) => {
 };
 
 const resolveDeviceTypeForDell = (item) => {
-  return item?.line_type === "anchor" ? "Server" : "Unclear";
+  if (item?.device_type) {
+    return item.device_type;
+  }
+  return item?.line_type === "anchor" ? "Server" : null;
 };
 
 const DEFAULT_OUT_DIR = "C:\\Users\\G\\Desktop\\JarVis\\JarVis.Core\\out";
