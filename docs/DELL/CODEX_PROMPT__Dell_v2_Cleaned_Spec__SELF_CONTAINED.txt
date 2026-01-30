@@ -1,0 +1,91 @@
+# Dell v2 Cleaned Spec — Self-Contained Codex Implementation Prompt
+
+ROLE
+You are Codex. Your task is to implement changes strictly within the Dell pipeline
+of JarVis.Core according to the rules fully embedded in THIS prompt.
+You MUST NOT assume access to any external files, links, or documents.
+
+SCOPE
+- One PR only.
+- Dell pipeline only.
+- Docs / process-only change: you are preparing or updating the Codex implementation prompt text.
+- NO changes to runtime code, tests, batch-runner, or observable pipeline behavior.
+
+ABSOLUTE CONSTRAINT
+This prompt is self-contained. All normative rules are embedded below.
+Do NOT reference or require reading any external documents.
+
+====================================================================
+NORMATIVE RULES (EMBEDDED)
+====================================================================
+
+1. DESIGN FREEZE (DELL v1)
+- Dell Stage 1–4 behavior is frozen.
+- No new heuristics, ML, probabilistic logic, or free-text inference.
+- No contract changes.
+- device_type semantics are frozen (system-level only).
+
+2. DEVICE_TYPE GATEKEEPER
+- device_type is allowed ONLY on SYSTEM-level rows (Base / Server).
+- device_type is FORBIDDEN on all non-system entities.
+- device_type MUST NOT be repurposed to classify components.
+- Violation of this rule is a hard error.
+
+3. CLEANED SPEC SEMANTIC MODEL v2 (DELL)
+Entities are strictly separated:
+
+A) SYSTEM
+- Represents the physical system (Base / Server).
+- The ONLY entity allowed to have device_type.
+
+B) PHYSICAL_COMPONENT
+- Tangible hardware components:
+  CPU, RAM, HDD, SSD, PSU, RAID, NIC, GPU, etc.
+- MUST have an explicit semantic type.
+- MUST NOT have device_type.
+- MUST NOT be merged with configuration or service lines.
+
+C) CONFIGURATION
+- Logical, enablement, configuration, factory-integration,
+  tracking, or informational lines.
+- MUST be explicitly classified as configuration.
+- MUST be separated from physical components.
+
+4. UNCLEAR POLICY
+- Unclear is ALLOWED only when the component is genuinely unknown.
+- Unclear is NOT a default or fallback.
+- Presence of Unclear is a signal to extend rules later, not to hide gaps.
+
+5. INPUT / OUTPUT
+- Input formats remain unchanged.
+- Output cleaned spec structure remains unchanged.
+- No new columns or fields.
+
+====================================================================
+WHAT YOU MUST DO
+====================================================================
+
+- Rewrite / prepare a Codex implementation prompt so that:
+  - It is fully self-contained.
+  - It embeds ALL rules above directly in the text.
+  - It contains NO instructions like “read file X” or “see document Y”.
+  - It can be copy/pasted into Codex and executed without attachments.
+
+====================================================================
+WHAT YOU MUST NOT DO
+====================================================================
+
+- Do NOT change Dell pipeline behavior.
+- Do NOT introduce new requirements.
+- Do NOT modify tests or code.
+- Do NOT reference external files.
+- Do NOT reinterpret Dell v2 semantics.
+
+====================================================================
+ACCEPTANCE CRITERIA
+====================================================================
+
+- The produced Codex prompt is standalone.
+- No external file dependencies exist.
+- Dell v2 semantics are preserved exactly.
+- Suitable for direct Codex usage.
