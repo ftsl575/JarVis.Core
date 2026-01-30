@@ -1,7 +1,7 @@
-# Dell cleaned spec semantic model v2 (documentation)
+# Dell cleaned spec semantic model v2.1 (documentation)
 
 ## Status and intent
-- **Status:** documentation / target semantic model v2.
+- **Status:** documentation / target semantic model v2.1.
 - **Intent:** define semantic classes for interpretation and future alignment.
 - **Non-impact:** this document **does not change current pipeline behavior**; it documents the semantic model only.
 
@@ -12,8 +12,9 @@ This document is additive and **must not contradict** the following Dell-only so
 - [DELL DEVICE_TYPE GATEKEEPER PRINCIPLE](../Dell_Device_Type_Gatekeeper_Principle.txt)
 
 ## Terminology note (semantic class vs. device_type)
-- The semantic **class** in this document describes the **meaning of a cleaned spec row** (SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE).
-- **device_type** is a separate, gated field that is **only applicable to SYSTEM** rows, per the gatekeeper principle.
+- The semantic **class** in this document describes the **meaning of a cleaned spec row** (SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE / META).
+- **line_type** is the required high-level class for every row.
+- **device_type** is a required, non-empty detailed row kind for every row, per the gatekeeper principle.
 - This document does **not** introduce new field names; it describes the semantic model at the conceptual level.
 
 ## Canonical semantic classes
@@ -21,22 +22,35 @@ The following classes are canonical for Dell cleaned spec v2 interpretation. The
 
 | Class | Definition | Invariants |
 | --- | --- | --- |
-| **SYSTEM** | System-level base/server line that represents the configuration anchor. | Only class where **device_type** is applicable/required; aligns with system/base rows. |
-| **PHYSICAL_COMPONENT** | Physical supply installed in or shipped with the system (parts, subassemblies, accessories). | Must not be mixed with CONFIGURATION; represents tangible items. |
+| **SYSTEM** | System-level base/server line that represents the configuration anchor. | device_type MUST be SERVER (canonical). |
+| **PHYSICAL_COMPONENT** | Physical supply installed in or shipped with the system (parts, subassemblies, accessories). | device_type MUST be one of the physical component enums. |
 | **CONFIGURATION** | Settings, modes, constraints, confirmations, or “No X” statements. | Not physical supply; may be shown separately or hidden by default per cleaned spec principle. |
-| **SOFTWARE / LICENSE** | Non-physical software, licenses, and entitlement features. | Separate from physical supply; not CONFIGURATION unless it is a pure “No X” or settings statement. |
-| **SERVICE** | Support, warranty, deployment, installation, or other service offerings. | Non-physical block; separate from physical supply. |
-| **META / LOGISTICS / DOCUMENTATION** (optional) | Regulatory, shipping, documentation, labels, and similar non-physical metadata. | Non-physical; not part of cleaned spec by default. |
+| **SOFTWARE_LICENSE** | Non-physical software, licenses, and entitlement features. | device_type MUST be SOFTWARE_LICENSE. |
+| **SERVICE** | Support, warranty, deployment, installation, or other service offerings. | device_type MUST be SERVICE. |
+| **META** | Regulatory, shipping, documentation, labels, and similar non-physical metadata. | device_type MUST be META. |
 
 ## Definitions and invariants
-- **SYSTEM** is the system-level anchor concept (Base / Server). It is the **only** entity kind where **device_type** is applicable, per the gatekeeper principle. This does not change any existing behavior or rules.
-- **PHYSICAL_COMPONENT** covers physical supply (CPU, memory, storage, PSU, RAID controller, NIC, GPU, chassis parts). These lines must be explicitly recognized as physical when known and must not be defaulted to “Unclear.”
+- **SYSTEM** is the system-level anchor concept (Base / Server). device_type MUST be SERVER (canonical), per the gatekeeper principle. This does not change any existing behavior or rules.
+- **PHYSICAL_COMPONENT** covers physical supply (CPU, memory, storage, PSU, RAID controller, NIC, GPU, heatsink, fan, chassis parts). These lines must be explicitly recognized as physical when known and must not be defaulted to “Unclear.”
 - **CONFIGURATION** is for settings, modes, capability flags, and “No X” statements (e.g., BIOS or RAID modes). It is **not** physical supply and must remain separate from PHYSICAL_COMPONENT.
-- **SOFTWARE / LICENSE** and **SERVICE** are non-physical groups and are listed separately from physical supply, consistent with the cleaned spec principle.
+- **SOFTWARE_LICENSE**, **SERVICE**, and **META** are non-physical groups and are listed separately from physical supply, consistent with the cleaned spec principle.
+
+## Canonical enums (v2.1)
+### line_type (required)
+SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE / META
+
+### device_type (required, non-empty)
+- SYSTEM: SERVER (canonical; SYSTEM MAY be used only if documented elsewhere).
+- PHYSICAL_COMPONENT (minimum): CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, CHASSIS_PART.
+- CONFIGURATION: CONFIGURATION.
+- SOFTWARE_LICENSE: SOFTWARE_LICENSE.
+- SERVICE: SERVICE.
+- META: META.
+- Fallback: UNCLEAR (deterministic, non-empty).
 
 ## “Unclear” policy (semantic)
-- **Unclear** is a temporary semantic state for **unknown or unhandled** cases that require investigation.
-- **Unclear must not be used as a default bucket** for known, recurring patterns (e.g., CPU, memory, SSD/HDD, PSU, RAID, NIC, GPU).
+- **UNCLEAR** is a deterministic fallback for **unknown or unhandled** cases that require investigation.
+- **UNCLEAR must not be used as a default bucket** for known, recurring patterns (e.g., CPU, memory, SSD/HDD, PSU, RAID, NIC, GPU).
 
 ## Examples (documentation-only)
 These are illustrative and do not imply implementation changes.
