@@ -1,3 +1,8 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: DELL
+DOC_STATUS: ACTIVE
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 PRINCIPLE: CLEANED SPEC — DELL
 
 ЦЕЛЬ
@@ -40,7 +45,7 @@ Cleaned spec предназначен для быстрого и однозна�
 - Этот принцип остаётся неизменным: cleaned spec по умолчанию отражает физическую поставку.
 - Документ «Dell cleaned spec semantic model v2.1» описывает семантические классы строк,
   а также line_type и device_type, не изменяя текущего поведения пайплайна.
-- См.: docs/DELL/CLEANED_SPEC_SEMANTIC_MODEL_v2.md
+- См.: docs/RULES.DELL/CLEANED_SPEC_SEMANTIC_MODEL_v2.md
 
 КОЛОНКА "Module Name" (НЕАВТОРИТАТИВНАЯ)
 Назначение этой колонки — только информационное отображение (display-only).

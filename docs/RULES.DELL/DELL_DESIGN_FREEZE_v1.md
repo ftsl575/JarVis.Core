@@ -1,3 +1,8 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: DELL
+DOC_STATUS: FROZEN
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 # Dell Design Freeze v1 — Segmentation & Line Semantics
 
 ## 1) Purpose & Status

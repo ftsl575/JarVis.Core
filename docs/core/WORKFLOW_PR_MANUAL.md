@@ -1,3 +1,8 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: CORE
+DOC_STATUS: ACTIVE
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 # Manual PR workflow
 
 Интеграция для создания Pull Request иногда падает ("не удалось создать запрос на включение") и может ругаться на бинарные файлы. Чтобы работа была устойчивой, PR создаётся вручную через GitHub UI.

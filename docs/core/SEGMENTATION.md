@@ -1,3 +1,8 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: CORE
+DOC_STATUS: ACTIVE
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 # Segmentation
 
 ## Problem statement
@@ -47,4 +52,4 @@ If multiple CTO anchors appear consecutively with **no** component rows between 
 
 ## Implementation note / guardrail
 
-Current diagnostics segmentation may deviate from this model. Any future implementation PR affecting segmentation must not introduce new concepts, rules, heuristics, or exceptions unless they are first documented in `docs/SEGMENTATION.md` via a docs-only PR.
+Current diagnostics segmentation may deviate from this model. Any future implementation PR affecting segmentation must not introduce new concepts, rules, heuristics, or exceptions unless they are first documented in `docs/core/SEGMENTATION.md` via a docs-only PR.

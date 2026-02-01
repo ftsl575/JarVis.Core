@@ -1,3 +1,9 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: CORE
+DOC_STATUS: FROZEN
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+DOC_ORIGIN: HPE-derived baseline
+
 # HPE Baseline v1 (Official)
 
 ## Baseline identifier
@@ -30,7 +36,7 @@ git push origin hpe-baseline-v1
 ## Authoritative baseline behavior (HPE v1)
 
 ### Segmentation (source of truth)
-- Target Model summary: configurations are created **only** by primary CTO anchors; secondary anchors never create configurations. Placement markers (B##) and Factory Integrated lines are metadata within the active configuration. Lines outside configurations may exist (ZIP/spares). The count of configurations equals the count of primary anchors. See `docs/SEGMENTATION.md` for the formal rules. Do **not** change the Target Model in this baseline.
+- Target Model summary: configurations are created **only** by primary CTO anchors; secondary anchors never create configurations. Placement markers (B##) and Factory Integrated lines are metadata within the active configuration. Lines outside configurations may exist (ZIP/spares). The count of configurations equals the count of primary anchors. See `docs/core/SEGMENTATION.md` for the formal rules. Do **not** change the Target Model in this baseline.
 - Adjacent CTO anchors rule: if multiple CTO anchors appear consecutively with no component rows between them, the **first** anchor is primary and starts the configuration, and all subsequent anchors are secondary and do **not** create new configurations.
 - Segmentation is the source of truth for all consumer generators (cleaned spec, invoice, diagnostics); consumer outputs must follow the segmentation model rather than invent new splitting rules.
 
@@ -58,7 +64,7 @@ git push origin hpe-baseline-v1
 - Current status: batch pipeline (`diag:hpe:batch:pack`) is stable; real inputs (ex2, DL360, DL380, gleb1) pass without errors; `npm test` is green.
 
 ### Artifact paths (out/ vs diag/)
-- **Source of truth:** `docs/OUTPUT_ARTIFACTS_CONTRACT.md` defines the authoritative contract for artifact paths and roles.
+- **Source of truth:** `docs/RULES.DELL/OUTPUT_ARTIFACTS_CONTRACT.md` defines the authoritative contract for artifact paths and roles.
 - **`out/`** is a last-run, overwritable view only; it contains artifacts from the most recent run and is not a historical store.
 - **`diag/`** is the per-input/per-run diagnostics and historical layer; it snapshots artifacts for each run and may include copies of `out/`.
 - **Separation:** `out/` and `diag/` are not interchangeable and serve distinct purposes.

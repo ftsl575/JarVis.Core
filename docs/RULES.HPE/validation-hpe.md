@@ -1,3 +1,8 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: HPE
+DOC_STATUS: ACTIVE
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 # HPE Vendor Validation (v2)
 
 This module adds HPE-specific validation checks on top of Canonical v1 outputs. The

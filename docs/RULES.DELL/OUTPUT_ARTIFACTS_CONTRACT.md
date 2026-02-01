@@ -1,6 +1,11 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: DELL
+DOC_STATUS: ACTIVE
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 # Dell output artifacts contract (out/ vs diag/)
 
-> **Authoritative context:** Dell behavior is frozen by [Dell Design Freeze v1](../DELL_DESIGN_FREEZE_v1.md). This document only records the current contract and does not change any behavior.
+> **Authoritative context:** Dell behavior is frozen by [Dell Design Freeze v1](DELL_DESIGN_FREEZE_v1.md). This document only records the current contract and does not change any behavior.
 
 ## Purpose
 This contract exists so consumers and humans can rely on a deterministic list of Dell pipeline artifacts (names + locations) for the current implementation. It is strictly documentation of **existing** behavior. Any change to the output contract must be proposed as a docs-only design update first, followed by a separate implementation PR.
@@ -39,4 +44,4 @@ In this referenced run, **`out/` is used** and **`diag/` is not present**.
 - Any change to outputs, naming, or locations must be proposed as a **docs-only design update first**, then implemented in a separate PR that updates code.
 
 ## Cleaned spec semantics pointer
-The Dell cleaned spec is intended to reflect **physical supply** and intentionally omits configurator “state/mode” lines. For full context, see [docs/CLEANED_SPEC_PRINCIPLE_Dell.txt](../CLEANED_SPEC_PRINCIPLE_Dell.txt).
+The Dell cleaned spec is intended to reflect **physical supply** and intentionally omits configurator “state/mode” lines. For full context, see [docs/RULES.DELL/CLEANED_SPEC_PRINCIPLE_Dell.txt](CLEANED_SPEC_PRINCIPLE_Dell.txt).

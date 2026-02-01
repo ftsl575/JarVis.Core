@@ -1,3 +1,8 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: DELL
+DOC_STATUS: ACTIVE
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 # Dell cleaned spec semantic model v2.1 (documentation)
 
 ## Status and intent
@@ -7,7 +12,7 @@
 
 ## Authoritative compatibility
 This document is additive and **must not contradict** the following Dell-only sources:
-- [Dell Design Freeze v1 — Segmentation & Line Semantics](../DELL_DESIGN_FREEZE_v1.md)
+- [Dell Design Freeze v1 — Segmentation & Line Semantics](DELL_DESIGN_FREEZE_v1.md)
 - [PRINCIPLE: CLEANED SPEC — DELL](../CLEANED_SPEC_PRINCIPLE_Dell.txt)
 - [DELL DEVICE_TYPE GATEKEEPER PRINCIPLE](../Dell_Device_Type_Gatekeeper_Principle.txt)
 

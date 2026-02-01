@@ -1,15 +1,15 @@
-Archived: superseded by docs/DELL/STATUS.md, 2026-02-01
+Archived: superseded by docs/RULES.DELL/STATUS.md, 2026-02-01
 # Status
 ACTIVE (Dell)
 
 ## Current state
 - Repo scaffold in place (adapters/, core/, docs/, scripts/, samples/).
-- Chat/window handoff system added: docs/STATUS.md, docs/HANDOFF.md, docs/DECISIONS.md, docs/ROADMAP.md, docs/CHAT_RULES.md plus `npm run handoff` (scripts/handoff.js).
+- Chat/window handoff system added: docs/RULES.DELL/STATUS.md, docs/core/HANDOFF.md, docs/core/DECISIONS.md, docs/RULES.DELL/ROADMAP.md, docs/core/CHAT_RULES.md plus `npm run handoff` (scripts/handoff.js).
 - HPE adapter parses configurator XLSX files and exports:
   - Canonical v1 JSONL
   - Items JSONL
   - Summary JSON
-- HPE baseline v1 is documented in `docs/BASELINE.md`.
+- HPE baseline v1 is documented in `docs/core/BASELINE.md`.
 - HPE baseline v1 (HPE v1) documents the frozen segmentation model, cleaned_spec ordering and traceability, invoice inclusion rules, and pipeline guardrails.
 - Unicode (Cyrillic) filenames are preserved end-to-end:
   - `source.file` contains the exact original filename

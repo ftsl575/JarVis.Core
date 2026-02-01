@@ -1,7 +1,7 @@
 # Dell cleaned spec — product principle E2E verification (record)
 
 ## Scope
-This record confirms that the approved product principle in `docs/CLEANED_SPEC_PRINCIPLE_Dell.txt` remains unchanged and was used as the authority for the Dell cleaned spec verification below (no rewording or edits to the principle document).
+This record confirms that the approved product principle in `docs/RULES.DELL/CLEANED_SPEC_PRINCIPLE_Dell.txt` remains unchanged and was used as the authority for the Dell cleaned spec verification below (no rewording or edits to the principle document).
 
 ## Evidence
 - Run log (evidence reference only; not embedded): `out/out1.txt`.
