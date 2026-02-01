@@ -1,4 +1,4 @@
-Archived: superseded by docs/DELL/ROADMAP.md, 2026-02-01
+Archived: superseded by docs/RULES.DELL/ROADMAP.md, 2026-02-01
 # Roadmap
 ACTIVE (Dell)
 

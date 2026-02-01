@@ -1,3 +1,8 @@
+DOC_TYPE: NORMATIVE
+DOC_SCOPE: DELL
+DOC_STATUS: ACTIVE
+DOC_ROLE: Consultant-window, Project-window, Codex-context
+
 DELL DEVICE_TYPE GATEKEEPER PRINCIPLE
 
 Purpose & scope

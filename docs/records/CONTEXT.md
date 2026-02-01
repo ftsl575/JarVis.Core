@@ -12,4 +12,4 @@
 - Last run artifacts: `C:\Users\G\Desktop\JarVis\JarVis.Core\out`
 
 ## Output artifacts contract
-- [Dell output artifacts contract (out/ vs diag/)](OUTPUT_ARTIFACTS_CONTRACT.md)
+- [Dell output artifacts contract (out/ vs diag/)](../RULES.DELL/OUTPUT_ARTIFACTS_CONTRACT.md)
