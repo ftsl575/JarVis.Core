@@ -1,4 +1,5 @@
 # Status
+ACTIVE (Dell)
 
 ## Current state
 - Repo scaffold in place (adapters/, core/, docs/, scripts/, samples/).
