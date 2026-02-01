@@ -34,10 +34,16 @@ git push origin hpe-baseline-v1
 - Adjacent CTO anchors rule: if multiple CTO anchors appear consecutively with no component rows between them, the **first** anchor is primary and starts the configuration, and all subsequent anchors are secondary and do **not** create new configurations.
 - Segmentation is the source of truth for all consumer generators (cleaned spec, invoice, diagnostics); consumer outputs must follow the segmentation model rather than invent new splitting rules.
 
+### Levels of truth (artifacts)
+- `out/items.jsonl` is the source of truth for canonicalized line-items data produced by canonicalization.
+- Segmentation is the source of truth for structure/grouping used by consumer outputs (cleaned spec, invoice).
+- `cleaned_spec.xlsx` is a derived, human-readable export for traceability; it is not a source of truth.
+
 ### cleaned_spec.xlsx (human-readable, traceable export)
 - Purpose: a human-readable representation of the parsed HPE configuration items, intended for review and traceability across the pipeline.
 - Ordering is fixed and deterministic: physical items first, then non-physical items.
 - Traceability fields are mandatory and must be preserved end-to-end: **Source File**, **Source Sheet**, **Source Row**, and **Source Item ID**. These guarantee provenance and enable audits back to the original input.
+- Naming note: `cleaned_spec.xlsx` is the normative artifact name; `cleaned.xlsx` may appear in older snapshots as a historical alias for the same cleaned spec output (no separate artifact).
 
 ### hpe_invoice.xlsx (configuration-based invoice)
 - Configuration grouping is based on segmentation: output is split into CFG blocks using the segments produced by the segmentation model.
@@ -47,7 +53,7 @@ git push origin hpe-baseline-v1
 - No Part Number (PN)-based logic is permitted for inclusion, grouping, or filtering.
 
 ### Batch / pipeline stability
-- Standard flow: input XLSX → canonical/items JSONL → cleaned_spec.xlsx → segmentation (segments.json) → hpe_invoice.xlsx.
+- Standard flow: input XLSX → canonical/items JSONL → segmentation (segments.json); consumer outputs (cleaned_spec.xlsx, hpe_invoice.xlsx) are derived from items plus segmentation.
 - Guarantee: no data loss across stages (input ↔ items ↔ cleaned_spec ↔ invoice), with traceability preserved throughout.
 - Current status: batch pipeline (`diag:hpe:batch:pack`) is stable; real inputs (ex2, DL360, DL380, gleb1) pass without errors; `npm test` is green.
 
