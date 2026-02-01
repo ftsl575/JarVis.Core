@@ -1,4 +1,5 @@
 # Dell status
+ACTIVE (Dell)
 
 ## Closed / Verified
 - Dell Stage 1 — CLOSED (canonical + items baseline stable).
