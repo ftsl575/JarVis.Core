@@ -15,6 +15,13 @@ Optional fields:
 - `device_type`: one of the allowed types in `data/type-system/v1/types.json`, or the fallback `Unclear`.
 - `matched_rule` (optional, debug): shows which rule matched (e.g., `pn:P19777-B21`, `kw:power supply`, or `fallback`).
 
+## Dell applicability (vendor-gated)
+For Dell, `device_type` applicability is **gated by the Dell Device_Type Gatekeeper** and does **not** apply to every row.
+- The Gatekeeper determines **whether** a row is SYSTEM-level and therefore eligible for `device_type`.
+- type-system-v1 runs **only after** a row is deterministically confirmed as SYSTEM-level.
+- Non-system rows **MUST NOT** receive `device_type`; absence is the correct final state.
+- `Unclear` is допустим **only** for SYSTEM rows when no deterministic classification exists; it is not a default and never appears on non-system rows.
+
 ## Matching Priority
 1. **PN exact map** (if part number present)
 2. **Keyword match** in `description` (case-insensitive)

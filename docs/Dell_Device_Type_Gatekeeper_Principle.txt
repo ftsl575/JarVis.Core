@@ -6,9 +6,18 @@ This document defines the Dell-only, declarative gatekeeper rules for the cleane
 with Dell Design Freeze v1 and the Dell Cleaned Spec principle. It introduces no new behavior,
 logic, or inference.
 
+Priority & override order (Dell)
+- **Design Freeze v1** (highest)
+- **Dell Device_Type Gatekeeper** (applicability)
+- **Cleaned Spec Semantic Model v2.1** (semantic interpretation)
+- **type-system-v1** (classification, gated)
+- The Gatekeeper **overrides generic systems** (including type-system-v1) on **where** `device_type` may exist.
+- type-system-v1 is a **value source only** and has **no authority** over applicability.
+
 Normative core principle (v2.1)
 - line_type MUST be assigned to every row using the canonical high-level classes.
-- device_type MUST be assigned to every row as a non-empty detailed row kind.
+- device_type applicability is Dell-gated and applies **only** to SYSTEM-level rows.
+- Non-system rows MUST NOT carry device_type; absence is the correct final state.
 - Both fields MUST be deterministic and MUST NOT rely on free-text interpretation.
 
 Canonical line_type classes (v2.1)
@@ -19,27 +28,26 @@ Canonical line_type classes (v2.1)
 - SERVICE
 - META
 
-Canonical device_type mapping (minimum)
-- SYSTEM: device_type MUST be SERVER (canonical; SYSTEM MAY be used only if documented elsewhere).
-- PHYSICAL_COMPONENT: device_type MUST be one of
-  CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, CHASSIS_PART.
-- CONFIGURATION: device_type MUST be CONFIGURATION.
-- SOFTWARE_LICENSE: device_type MUST be SOFTWARE_LICENSE.
-- SERVICE: device_type MUST be SERVICE.
-- META: device_type MUST be META.
+Axis separation (Dell)
+- The Gatekeeper defines **WHERE** `device_type` may exist (applicability).
+- type-system-v1 defines **WHAT** `device_type` value may be used **only** when applicable.
+
+Canonical device_type mapping (minimum, SYSTEM-only)
+- If and only if a row is SYSTEM-level, device_type MUST be SERVER (canonical; SYSTEM MAY be used only if documented elsewhere).
 
 Module Name role clarification (Dell-only)
 - Module Name is NOT a line_type or device_type inference signal.
 - Module Name MUST NOT be used to guess or infer line_type or device_type.
 
 Safety-first default (fallback rule)
-- If the device_type cannot be determined deterministically:
+- If the SYSTEM-level device_type cannot be determined deterministically:
   - device_type MUST be set to UNCLEAR (non-empty fallback).
 - line_type MUST still be assigned deterministically using structural rules only.
+- UNCLEAR MUST NOT appear on non-system rows; absence of device_type is correct there.
 
 Determinism guarantee
 - The rule forbids free-text heuristics and ML/probabilistic behavior.
-- The rule requires a non-empty, deterministic device_type for every row.
+- The rule requires a non-empty, deterministic device_type for SYSTEM rows only; non-system rows omit device_type.
 
 Explicit non-goals
 - No changes to Dell pipeline behavior or stage contracts.

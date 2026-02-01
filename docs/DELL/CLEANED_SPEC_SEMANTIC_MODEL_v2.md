@@ -14,7 +14,8 @@ This document is additive and **must not contradict** the following Dell-only so
 ## Terminology note (semantic class vs. device_type)
 - The semantic **class** in this document describes the **meaning of a cleaned spec row** (SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE / META).
 - **line_type** is the required high-level class for every row.
-- **device_type** is a required, non-empty detailed row kind for every row, per the gatekeeper principle.
+- **device_type** applicability is defined by the Dell Device_Type Gatekeeper; for Dell, it applies **only** to SYSTEM rows.
+- Non-system rows **must omit** device_type; absence is the correct final state.
 - This document does **not** introduce new field names; it describes the semantic model at the conceptual level.
 
 ## Canonical semantic classes
@@ -23,15 +24,15 @@ The following classes are canonical for Dell cleaned spec v2 interpretation. The
 | Class | Definition | Invariants |
 | --- | --- | --- |
 | **SYSTEM** | System-level base/server line that represents the configuration anchor. | device_type MUST be SERVER (canonical). |
-| **PHYSICAL_COMPONENT** | Physical supply installed in or shipped with the system (parts, subassemblies, accessories). | device_type MUST be one of the physical component enums. |
-| **CONFIGURATION** | Settings, modes, constraints, confirmations, or “No X” statements. | Not physical supply; may be shown separately or hidden by default per cleaned spec principle. |
-| **SOFTWARE_LICENSE** | Non-physical software, licenses, and entitlement features. | device_type MUST be SOFTWARE_LICENSE. |
-| **SERVICE** | Support, warranty, deployment, installation, or other service offerings. | device_type MUST be SERVICE. |
-| **META** | Regulatory, shipping, documentation, labels, and similar non-physical metadata. | device_type MUST be META. |
+| **PHYSICAL_COMPONENT** | Physical supply installed in or shipped with the system (parts, subassemblies, accessories). | device_type is not applicable; rows must omit device_type. |
+| **CONFIGURATION** | Settings, modes, constraints, confirmations, or “No X” statements. | device_type is not applicable; rows must omit device_type. |
+| **SOFTWARE_LICENSE** | Non-physical software, licenses, and entitlement features. | device_type is not applicable; rows must omit device_type. |
+| **SERVICE** | Support, warranty, deployment, installation, or other service offerings. | device_type is not applicable; rows must omit device_type. |
+| **META** | Regulatory, shipping, documentation, labels, and similar non-physical metadata. | device_type is not applicable; rows must omit device_type. |
 
 ## Definitions and invariants
 - **SYSTEM** is the system-level anchor concept (Base / Server). device_type MUST be SERVER (canonical), per the gatekeeper principle. This does not change any existing behavior or rules.
-- **PHYSICAL_COMPONENT** covers physical supply (CPU, memory, storage, PSU, RAID controller, NIC, GPU, heatsink, fan, chassis parts). These lines must be explicitly recognized as physical when known and must not be defaulted to “Unclear.”
+- **PHYSICAL_COMPONENT** covers physical supply (CPU, memory, storage, PSU, RAID controller, NIC, GPU, heatsink, fan, chassis parts). These lines must be explicitly recognized as physical when known; device_type is not applicable to these rows.
 - **CONFIGURATION** is for settings, modes, capability flags, and “No X” statements (e.g., BIOS or RAID modes). It is **not** physical supply and must remain separate from PHYSICAL_COMPONENT.
 - **SOFTWARE_LICENSE**, **SERVICE**, and **META** are non-physical groups and are listed separately from physical supply, consistent with the cleaned spec principle.
 
@@ -39,18 +40,13 @@ The following classes are canonical for Dell cleaned spec v2 interpretation. The
 ### line_type (required)
 SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE / META
 
-### device_type (required, non-empty)
+### device_type (SYSTEM-only; required, non-empty when applicable)
 - SYSTEM: SERVER (canonical; SYSTEM MAY be used only if documented elsewhere).
-- PHYSICAL_COMPONENT (minimum): CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, CHASSIS_PART.
-- CONFIGURATION: CONFIGURATION.
-- SOFTWARE_LICENSE: SOFTWARE_LICENSE.
-- SERVICE: SERVICE.
-- META: META.
-- Fallback: UNCLEAR (deterministic, non-empty).
+- Fallback: UNCLEAR (deterministic, non-empty) **only** when a SYSTEM row cannot be classified deterministically.
 
 ## “Unclear” policy (semantic)
-- **UNCLEAR** is a deterministic fallback for **unknown or unhandled** cases that require investigation.
-- **UNCLEAR must not be used as a default bucket** for known, recurring patterns (e.g., CPU, memory, SSD/HDD, PSU, RAID, NIC, GPU).
+- **UNCLEAR** is a deterministic fallback for **SYSTEM rows only** when no deterministic classification exists.
+- **UNCLEAR must not be used as a default bucket** and must never appear on non-system rows.
 
 ## Examples (documentation-only)
 These are illustrative and do not imply implementation changes.
