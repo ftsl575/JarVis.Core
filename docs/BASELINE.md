@@ -51,6 +51,12 @@ git push origin hpe-baseline-v1
 - Guarantee: no data loss across stages (input ↔ items ↔ cleaned_spec ↔ invoice), with traceability preserved throughout.
 - Current status: batch pipeline (`diag:hpe:batch:pack`) is stable; real inputs (ex2, DL360, DL380, gleb1) pass without errors; `npm test` is green.
 
+### Artifact paths (out/ vs diag/)
+- **Source of truth:** `docs/OUTPUT_ARTIFACTS_CONTRACT.md` defines the authoritative contract for artifact paths and roles.
+- **`out/`** is a last-run, overwritable view only; it contains artifacts from the most recent run and is not a historical store.
+- **`diag/`** is the per-input/per-run diagnostics and historical layer; it snapshots artifacts for each run and may include copies of `out/`.
+- **Separation:** `out/` and `diag/` are not interchangeable and serve distinct purposes.
+
 ### Guardrails (mandatory for future work)
 - Do not alter the segmentation Target Model, cleaned_spec ordering, or invoice inclusion rules without a prior docs-only design PR that updates this baseline explicitly.
 - Consumer generators must not “fix symptoms” by inventing new segmentation or filtering rules; they must follow the segmentation model as the source of truth.
