@@ -49,6 +49,8 @@ The following line roles are **locked** and MUST be used consistently:
 - **No heuristic or free-text device-type inference.**
 - **No changes to Stage 1 behavior.**
 
+Design Freeze v1 locks **architecture, contracts, segmentation rules, and deterministic behavior**; however, **documentation-only semantic clarification** (including Stage 4 semantic explanations) is permitted **only** when it introduces **no behavioral or architectural change**, and such clarification does **not** weaken, bypass, or reinterpret the freeze.
+
 ## 7.1) Design Update — Semantic Model v2.1 (Locked, Documentation-Only)
 This section **explicitly permits** the **semantic model v2.1** for Dell documentation while preserving the v1 constraints.
 
