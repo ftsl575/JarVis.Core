@@ -1,3 +1,4 @@
+Archived: superseded by docs/DELL/STATUS.md, 2026-02-01
 # Status
 ACTIVE (Dell)
 
