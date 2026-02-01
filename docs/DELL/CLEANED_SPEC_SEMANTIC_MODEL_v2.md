@@ -18,6 +18,12 @@ This document is additive and **must not contradict** the following Dell-only so
 - Non-system rows **must omit** device_type; absence is the correct final state.
 - This document does **not** introduce new field names; it describes the semantic model at the conceptual level.
 
+## Clarification: fallback and UNCLEAR scope
+- This semantic model defines **semantic classes only**; it does **not** define or imply row-level fallback behavior.
+- **UNCLEAR is not a semantic class** and is **not** a row-level fallback.
+- **UNCLEAR applies only to SYSTEM rows**, and only as a **device_type** fallback when a SYSTEM row cannot be classified deterministically.
+- For non-system rows, **line_type is assigned deterministically** and **device_type is absent** (never UNCLEAR).
+
 ## Canonical semantic classes
 The following classes are canonical for Dell cleaned spec v2 interpretation. They are **semantic definitions**, not implementation rules.
 
