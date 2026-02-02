@@ -86,6 +86,10 @@ const normalizeLineRole = (value) => normalizeText(value).toLowerCase();
 
 const STRUCTURED_FIELD_SPECS = [
   {
+    label: "device_type",
+    keys: ["device_type", "deviceType", "Device Type"],
+  },
+  {
     label: "component_type",
     keys: ["component_type", "componentType", "Component Type", "ComponentType"],
   },
@@ -119,18 +123,24 @@ const STRUCTURED_FIELD_SPECS = [
   },
 ];
 
-const LINE_TYPE_ENUM_MAP = new Map([
+const normalizeEnumKey = (value) => normalizeText(value).toLowerCase();
+
+const buildEnumMap = (entries) =>
+  new Map(entries.map(([key, value]) => [normalizeEnumKey(key), value]));
+
+const LINE_TYPE_ENUM_MAP = buildEnumMap([
   ["Service", "SERVICE"],
   ["Services", "SERVICE"],
   ["Support", "SERVICE"],
   ["Warranty", "SERVICE"],
   ["Maintenance", "SERVICE"],
+  ["Configuration", "CONFIGURATION"],
   ["Software", "SOFTWARE_LICENSE"],
   ["Software License", "SOFTWARE_LICENSE"],
   ["License", "SOFTWARE_LICENSE"],
 ]);
 
-const PHYSICAL_DEVICE_TYPE_ENUM_MAP = new Map([
+const PHYSICAL_DEVICE_TYPE_ENUM_MAP = buildEnumMap([
   ["CPU", "CPU"],
   ["Processor", "CPU"],
   ["Memory", "RAM"],
@@ -139,6 +149,7 @@ const PHYSICAL_DEVICE_TYPE_ENUM_MAP = new Map([
   ["DIMM", "RAM"],
   ["SSD", "SSD"],
   ["Solid State Drive", "SSD"],
+  ["Solid State Disk", "SSD"],
   ["HDD", "HDD"],
   ["Hard Drive", "HDD"],
   ["Hard Disk Drive", "HDD"],
@@ -146,6 +157,7 @@ const PHYSICAL_DEVICE_TYPE_ENUM_MAP = new Map([
   ["Power Supply", "PSU"],
   ["Power Supply Unit", "PSU"],
   ["RAID Controller", "RAID_CONTROLLER"],
+  ["Raid Controller", "RAID_CONTROLLER"],
   ["RAID Controller Card", "RAID_CONTROLLER"],
   ["NIC", "NIC"],
   ["Network Adapter", "NIC"],
@@ -154,6 +166,14 @@ const PHYSICAL_DEVICE_TYPE_ENUM_MAP = new Map([
   ["Graphics", "GPU"],
   ["Graphics Card", "GPU"],
   ["Video Card", "GPU"],
+  ["Heatsink", "HEATSINK"],
+  ["Heat Sink", "HEATSINK"],
+  ["Fan", "FAN"],
+  ["Cooling Fan", "FAN"],
+  ["Backplane", "BACKPLANE"],
+  ["Chassis", "CHASSIS_PART"],
+  ["Chassis Part", "CHASSIS_PART"],
+  ["Chassis Component", "CHASSIS_PART"],
 ]);
 
 const getStructuredFieldValue = (item, keys) => {
@@ -174,7 +194,11 @@ const resolveStructuredEnumMatch = (item, enumMap) => {
     if (typeof rawValue !== "string") {
       continue;
     }
-    const mapped = enumMap.get(rawValue);
+    const normalized = normalizeEnumKey(rawValue);
+    if (!normalized) {
+      continue;
+    }
+    const mapped = enumMap.get(normalized);
     if (mapped) {
       return mapped;
     }
@@ -219,7 +243,7 @@ const inferDellDeviceType = (item, lineType) => {
     case "SERVICE":
       return "SERVICE";
     case "META":
-      return "META";
+      return "UNCLEAR";
     case "PHYSICAL_COMPONENT":
       return inferPhysicalDeviceType(item);
     default:
