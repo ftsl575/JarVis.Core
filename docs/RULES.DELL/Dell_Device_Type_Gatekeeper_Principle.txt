@@ -21,8 +21,9 @@ Priority & override order (Dell)
 
 Normative core principle (v2.1)
 - line_type MUST be assigned to every row using the canonical high-level classes.
-- device_type applicability is Dell-gated and applies **only** to SYSTEM-level rows.
-- Non-system rows MUST NOT carry device_type; absence is the correct final state.
+- device_type applicability is Dell-gated and applies to all normal/repeatable rows of
+  SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE.
+- device_type MUST be non-empty for those normal/repeatable rows.
 - Both fields MUST be deterministic and MUST NOT rely on free-text interpretation.
 
 Canonical line_type classes (v2.1)
@@ -37,22 +38,27 @@ Axis separation (Dell)
 - The Gatekeeper defines **WHERE** `device_type` may exist (applicability).
 - type-system-v1 defines **WHAT** `device_type` value may be used **only** when applicable.
 
-Canonical device_type mapping (minimum, SYSTEM-only)
-- If and only if a row is SYSTEM-level, device_type MUST be SERVER (canonical; SYSTEM MAY be used only if documented elsewhere).
+Canonical device_type mapping (minimum, Dell)
+- SYSTEM rows: device_type MUST be SERVER (canonical; SYSTEM MAY be used only if documented elsewhere).
+- PHYSICAL_COMPONENT rows: device_type MUST be one of
+  CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, BACKPLANE, CHASSIS_PART.
+- CONFIGURATION rows: device_type MUST be CONFIGURATION.
+- SOFTWARE_LICENSE rows: device_type MUST be SOFTWARE_LICENSE.
+- SERVICE rows: device_type MUST be SERVICE.
 
 Module Name role clarification (Dell-only)
 - Module Name is NOT a line_type or device_type inference signal.
 - Module Name MUST NOT be used to guess or infer line_type or device_type.
 
 Safety-first default (fallback rule)
-- If the SYSTEM-level device_type cannot be determined deterministically:
-  - device_type MUST be set to UNCLEAR (non-empty fallback).
+- If device_type cannot be determined deterministically for a normal/repeatable row:
+  - device_type MAY be set to Unclear ONLY as a temporary fallback.
+- Unclear is NOT a valid default and NOT an acceptable steady-state for normal/repeatable cases.
 - line_type MUST still be assigned deterministically using structural rules only.
-- UNCLEAR MUST NOT appear on non-system rows; absence of device_type is correct there.
 
 Determinism guarantee
 - The rule forbids free-text heuristics and ML/probabilistic behavior.
-- The rule requires a non-empty, deterministic device_type for SYSTEM rows only; non-system rows omit device_type.
+- The rule requires a non-empty, deterministic device_type for normal/repeatable rows in scope.
 
 Explicit non-goals
 - No changes to Dell pipeline behavior or stage contracts.
