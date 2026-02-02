@@ -84,45 +84,6 @@ const normalizeText = (value) => (value === null || value === undefined ? "" : S
 
 const normalizeLineRole = (value) => normalizeText(value).toLowerCase();
 
-const STRUCTURED_FIELD_SPECS = [
-  {
-    label: "device_type",
-    keys: ["device_type", "deviceType", "Device Type"],
-  },
-  {
-    label: "component_type",
-    keys: ["component_type", "componentType", "Component Type", "ComponentType"],
-  },
-  {
-    label: "category",
-    keys: ["category", "Category"],
-  },
-  {
-    label: "feature_group",
-    keys: [
-      "feature_group",
-      "featureGroup",
-      "Feature Group",
-      "Group / Feature Group",
-      "Group/Feature Group",
-      "group",
-      "Group",
-    ],
-  },
-  {
-    label: "item_type",
-    keys: ["item_type", "itemType", "Item Type", "ItemType"],
-  },
-  {
-    label: "option_type",
-    keys: ["option_type", "optionType", "Option Type", "OptionType"],
-  },
-  {
-    label: "line_item_type",
-    keys: ["line_item_type", "lineItemType", "Line Item Type", "LineItemType"],
-  },
-];
-
 const normalizeEnumKey = (value) => normalizeText(value).toLowerCase();
 
 const buildEnumMap = (entries) =>
@@ -176,34 +137,16 @@ const PHYSICAL_DEVICE_TYPE_ENUM_MAP = buildEnumMap([
   ["Chassis Component", "CHASSIS_PART"],
 ]);
 
-const getStructuredFieldValue = (item, keys) => {
-  for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(item ?? {}, key)) {
-      return item[key];
-    }
+const resolveModuleEnumMatch = (item, enumMap) => {
+  const moduleName = resolveModuleNameRaw(item);
+  if (!moduleName) {
+    return null;
   }
-  return undefined;
-};
-
-const resolveStructuredEnumMatch = (item, enumMap) => {
-  for (const field of STRUCTURED_FIELD_SPECS) {
-    const rawValue = getStructuredFieldValue(item, field.keys);
-    if (rawValue === null || rawValue === undefined || rawValue === "") {
-      continue;
-    }
-    if (typeof rawValue !== "string") {
-      continue;
-    }
-    const normalized = normalizeEnumKey(rawValue);
-    if (!normalized) {
-      continue;
-    }
-    const mapped = enumMap.get(normalized);
-    if (mapped) {
-      return mapped;
-    }
+  const normalized = normalizeEnumKey(moduleName);
+  if (!normalized) {
+    return null;
   }
-  return null;
+  return enumMap.get(normalized) ?? null;
 };
 
 const inferDellLineType = (item) => {
@@ -218,19 +161,15 @@ const inferDellLineType = (item) => {
     return "META";
   }
 
-  const structuredLineType = resolveStructuredEnumMatch(item, LINE_TYPE_ENUM_MAP);
-  if (structuredLineType) {
-    return structuredLineType;
-  }
-
   if (lineRole === "item" || lineRole === "unknown" || !lineRole) {
-    return "PHYSICAL_COMPONENT";
+    const moduleLineType = resolveModuleEnumMatch(item, LINE_TYPE_ENUM_MAP);
+    return moduleLineType ?? "PHYSICAL_COMPONENT";
   }
   return "PHYSICAL_COMPONENT";
 };
 
 const inferPhysicalDeviceType = (item) =>
-  resolveStructuredEnumMatch(item, PHYSICAL_DEVICE_TYPE_ENUM_MAP) ?? "UNCLEAR";
+  resolveModuleEnumMatch(item, PHYSICAL_DEVICE_TYPE_ENUM_MAP) ?? "UNCLEAR";
 
 const inferDellDeviceType = (item, lineType) => {
   switch (lineType) {

@@ -57,7 +57,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           product_number: "MEM740",
           description: "Memory DIMM",
           device_type: "memory",
-          component_type: "Memory",
+          module_name_raw: "Memory",
           line_type: "item",
         },
         {
@@ -75,7 +75,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           description: "Support plan",
           device_type: "support",
           line_type: "item",
-          item_type: "Service",
+          module_name_raw: "Service",
         },
         {
           source_ref: "dl2.xlsx::BOM::6",
@@ -84,7 +84,7 @@ test("docs:dell:cleaned_spec emits deterministic rows from Stage 3 segment JSON"
           description: "Deployment",
           device_type: "",
           line_type: "item",
-          category: "Service",
+          module_name_raw: "Service",
         },
         {
           source_ref: "dl2.xlsx::BOM::7",
