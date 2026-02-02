@@ -19,7 +19,7 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
       qty: 2,
       product_number: "R740",
       description: "PowerEdge R740 Server",
-      device_type: "Server",
+      device_type: "",
       line_type: "anchor",
       raw_ref: { file: "dl2.xlsx", sheet: "BOM", row_index: 2 },
     },
@@ -29,7 +29,8 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
       qty: 4,
       product_number: "MEM740",
       description: "Memory DIMM",
-      device_type: "Memory",
+      device_type: "",
+      component_type: "Memory",
       line_type: "item",
       raw_ref: { file: "dl2.xlsx", sheet: "BOM", row_index: 3 },
     },
@@ -39,7 +40,8 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
       qty: 1,
       product_number: null,
       description: "Rail Kit",
-      device_type: "Accessory",
+      device_type: "",
+      category: "Chassis",
       line_type: "item",
       raw_ref: { file: "dl2.xlsx", sheet: "BOM", row_index: 4 },
     },
@@ -49,7 +51,7 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
       qty: 8,
       product_number: "NIC",
       description: "Network Adapter",
-      device_type: "Server",
+      device_type: "",
       line_type: "anchor",
       raw_ref: { file: "dl2.xlsx", sheet: "BOM", row_index: 5 },
     },
@@ -113,7 +115,7 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
         product_number: "R740",
         description: "PowerEdge R740 Server",
         module_name_raw: null,
-        device_type: "Server",
+        device_type: "SERVER",
         line_type: "anchor",
       },
       {
@@ -122,8 +124,9 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
         product_number: "MEM740",
         description: "Memory DIMM",
         module_name_raw: null,
-        device_type: "Memory",
+        device_type: "RAM",
         line_type: "item",
+        component_type: "Memory",
       },
       {
         source_ref: "dl2.xlsx::BOM::4",
@@ -131,8 +134,9 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
         product_number: null,
         description: "Rail Kit",
         module_name_raw: null,
-        device_type: "Accessory",
+        device_type: "CHASSIS_PART",
         line_type: "item",
+        category: "Chassis",
       },
     ],
     meta: { schema_version: 1 },
@@ -149,7 +153,7 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
         product_number: "NIC",
         description: "Network Adapter",
         module_name_raw: null,
-        device_type: "Server",
+        device_type: "SERVER",
         line_type: "anchor",
       },
     ],
@@ -162,7 +166,25 @@ test("dell stage 3 materializes per-segment JSON deterministically", async () =>
   const itemsAfter = await fs.readFile(itemsPath, "utf8");
   const segmentsAfter = await fs.readFile(segmentsPath, "utf8");
 
-  assert.equal(itemsAfter, itemsBefore);
+  const expectedItems = [
+    {
+      ...items[0],
+      device_type: "SERVER",
+    },
+    {
+      ...items[1],
+      device_type: "RAM",
+    },
+    {
+      ...items[2],
+      device_type: "CHASSIS_PART",
+    },
+    {
+      ...items[3],
+      device_type: "SERVER",
+    },
+  ];
+  assert.equal(itemsAfter, toJsonl(expectedItems));
   assert.equal(segmentsAfter, segmentsBefore);
 
   await fs.rm(tempDir, { recursive: true, force: true });
@@ -180,7 +202,7 @@ test("dell stage 3 materializes anchor-only segments", async () => {
       qty: 1,
       product_number: "R650",
       description: "PowerEdge R650 Server",
-      device_type: "Server",
+      device_type: "",
       line_type: "anchor",
       raw_ref: { file: "dl_anchor.xlsx", sheet: "BOM", row_index: 10 },
     },
@@ -229,7 +251,7 @@ test("dell stage 3 materializes anchor-only segments", async () => {
         product_number: "R650",
         description: "PowerEdge R650 Server",
         module_name_raw: null,
-        device_type: "Server",
+        device_type: "SERVER",
         line_type: "anchor",
       },
     ],
@@ -241,7 +263,13 @@ test("dell stage 3 materializes anchor-only segments", async () => {
   const itemsAfter = await fs.readFile(itemsPath, "utf8");
   const segmentsAfter = await fs.readFile(segmentsPath, "utf8");
 
-  assert.equal(itemsAfter, itemsBefore);
+  const expectedItems = [
+    {
+      ...items[0],
+      device_type: "SERVER",
+    },
+  ];
+  assert.equal(itemsAfter, toJsonl(expectedItems));
   assert.equal(segmentsAfter, segmentsBefore);
 
   await fs.rm(tempDir, { recursive: true, force: true });
