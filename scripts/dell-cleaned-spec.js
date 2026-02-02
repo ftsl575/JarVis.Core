@@ -96,6 +96,8 @@ const LINE_TYPE_RULES = [
     patterns: [
       "Configuration",
       "System Configuration",
+      "Advanced System Configuration",
+      "Settings",
       "BIOS",
       "BIOS Settings",
       "BIOS Setting",
@@ -128,6 +130,8 @@ const DEVICE_TYPE_RULES = [
     patterns: [
       "Memory",
       "Memory Module",
+      "Memory DIMM",
+      "Memory DIMMs",
       "Memory Capacity",
       "RAM",
       "DIMM",
@@ -146,9 +150,11 @@ const DEVICE_TYPE_RULES = [
     matchKind: "exact",
     patterns: [
       "SSD",
+      "SSDs",
       "NVMe",
       "NVMe SSD",
       "NVMe Drives",
+      "Solid State",
       "Solid State Drive",
       "Solid State Drives",
       "Solid State Disk",
@@ -179,6 +185,10 @@ const DEVICE_TYPE_RULES = [
     lineTypes: ["PHYSICAL_COMPONENT"],
     matchKind: "exact",
     patterns: [
+      "RAID",
+      "PERC",
+      "PERC Controller",
+      "PERC Controllers",
       "RAID Controller",
       "Raid Controller",
       "RAID Controller Card",
@@ -187,6 +197,7 @@ const DEVICE_TYPE_RULES = [
       "Internal Storage Controller",
       "Internal Storage Controllers",
       "Internal Storage Controller Card",
+      "RAID/Internal Storage Controllers",
     ],
     resultDeviceType: "RAID_CONTROLLER",
   },
@@ -195,10 +206,13 @@ const DEVICE_TYPE_RULES = [
     matchKind: "exact",
     patterns: [
       "NIC",
+      "Network",
       "Network Adapter",
       "Network Adapters",
       "Network Interface Card",
       "Network Interface Cards",
+      "OCP",
+      "OCP 3.0",
     ],
     resultDeviceType: "NIC",
   },
@@ -265,7 +279,7 @@ const DEVICE_TYPE_RULES = [
   {
     lineTypes: ["PHYSICAL_COMPONENT"],
     matchKind: "contains",
-    patterns: ["nic", "network adapter", "network interface"],
+    patterns: ["nic", "network adapter", "network interface", "ocp"],
     resultDeviceType: "NIC",
   },
   {
@@ -309,6 +323,12 @@ const DEVICE_TYPE_RULES = [
     matchKind: "contains",
     patterns: ["hdd", "hard drive", "hard disk"],
     resultDeviceType: "HDD",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["SAS", "SATA", "Drive", "Drives"],
+    resultDeviceType: "UNCLEAR",
   },
 ];
 
