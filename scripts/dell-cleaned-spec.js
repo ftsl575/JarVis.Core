@@ -39,6 +39,9 @@ const normalizeNumber = (value) => {
 };
 
 const normalizeModuleName = (value) => (value === null || value === undefined ? "" : String(value));
+const normalizeText = (value) => (value === null || value === undefined ? "" : String(value).trim());
+const normalizeModuleNameForMatch = (value) =>
+  normalizeText(value).replace(/\s+/g, " ").toLowerCase();
 
 const resolvePartNumber = (item) =>
   item?.product_number ?? item?.part_number ?? item?.partNumber ?? item?.product ?? "";
@@ -80,108 +83,291 @@ const resolveAnchorItem = ({ segment, items }) => {
   return items.find((item) => item?.line_type === "anchor") ?? null;
 };
 
-const normalizeText = (value) => (value === null || value === undefined ? "" : String(value).trim());
-
 const normalizeLineRole = (value) => normalizeText(value).toLowerCase();
 
-const normalizeEnumKey = (value) => normalizeText(value).toLowerCase();
+const LINE_TYPE_RULES = [
+  {
+    matchKind: "exact",
+    patterns: ["Service", "Services", "Support", "Warranty", "Maintenance"],
+    resultLineType: "SERVICE",
+  },
+  {
+    matchKind: "exact",
+    patterns: [
+      "Configuration",
+      "System Configuration",
+      "BIOS",
+      "BIOS Settings",
+      "BIOS Setting",
+      "RAID Configuration",
+    ],
+    resultLineType: "CONFIGURATION",
+  },
+  {
+    matchKind: "prefix",
+    patterns: ["No "],
+    resultLineType: "CONFIGURATION",
+  },
+  {
+    matchKind: "exact",
+    patterns: ["Software", "Software License", "License"],
+    resultLineType: "SOFTWARE_LICENSE",
+  },
+];
 
-const buildEnumMap = (entries) =>
-  new Map(entries.map(([key, value]) => [normalizeEnumKey(key), value]));
+const DEVICE_TYPE_RULES = [
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["CPU", "Processor"],
+    resultDeviceType: "CPU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "Memory",
+      "Memory Module",
+      "Memory Capacity",
+      "RAM",
+      "DIMM",
+      "DIMMs",
+      "RDIMM",
+      "RDIMMs",
+      "UDIMM",
+      "UDIMMs",
+      "LRDIMM",
+      "LRDIMMs",
+    ],
+    resultDeviceType: "RAM",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "SSD",
+      "NVMe",
+      "NVMe SSD",
+      "NVMe Drives",
+      "Solid State Drive",
+      "Solid State Drives",
+      "Solid State Disk",
+      "Solid State Disks",
+    ],
+    resultDeviceType: "SSD",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "HDD",
+      "Hard Drive",
+      "Hard Drives",
+      "Hard Disk",
+      "Hard Disk Drive",
+      "Hard Disk Drives",
+    ],
+    resultDeviceType: "HDD",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["PSU", "Power Supply", "Power Supply Unit"],
+    resultDeviceType: "PSU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "RAID Controller",
+      "Raid Controller",
+      "RAID Controller Card",
+      "Storage Controller",
+      "Storage Controllers",
+      "Internal Storage Controller",
+      "Internal Storage Controllers",
+      "Internal Storage Controller Card",
+    ],
+    resultDeviceType: "RAID_CONTROLLER",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "NIC",
+      "Network Adapter",
+      "Network Adapters",
+      "Network Interface Card",
+      "Network Interface Cards",
+    ],
+    resultDeviceType: "NIC",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["GPU", "Graphics", "Graphics Card", "Video Card"],
+    resultDeviceType: "GPU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["Heatsink", "Heat Sink"],
+    resultDeviceType: "HEATSINK",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["Fan", "Fans", "Cooling Fan", "Cooling Fans", "System Fan", "System Fans"],
+    resultDeviceType: "FAN",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["Backplane", "Backplanes"],
+    resultDeviceType: "BACKPLANE",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "Chassis",
+      "Chassis Part",
+      "Chassis Parts",
+      "Chassis Component",
+      "Chassis Components",
+    ],
+    resultDeviceType: "CHASSIS_PART",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["cpu", "processor"],
+    resultDeviceType: "CPU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["memory", "ram", "dimm", "rdimm", "lrdimm", "udimm"],
+    resultDeviceType: "RAM",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["psu", "power supply"],
+    resultDeviceType: "PSU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["raid controller", "storage controller"],
+    resultDeviceType: "RAID_CONTROLLER",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["nic", "network adapter", "network interface"],
+    resultDeviceType: "NIC",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["fan", "cooling fan", "system fan"],
+    resultDeviceType: "FAN",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["gpu", "graphics", "video card"],
+    resultDeviceType: "GPU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["heatsink", "heat sink"],
+    resultDeviceType: "HEATSINK",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["backplane"],
+    resultDeviceType: "BACKPLANE",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["chassis"],
+    resultDeviceType: "CHASSIS_PART",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["ssd", "nvme", "solid state"],
+    resultDeviceType: "SSD",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "contains",
+    patterns: ["hdd", "hard drive", "hard disk"],
+    resultDeviceType: "HDD",
+  },
+];
 
-const LINE_TYPE_ENUM_MAP = buildEnumMap([
-  ["Service", "SERVICE"],
-  ["Services", "SERVICE"],
-  ["Support", "SERVICE"],
-  ["Warranty", "SERVICE"],
-  ["Maintenance", "SERVICE"],
-  ["Configuration", "CONFIGURATION"],
-  ["System Configuration", "CONFIGURATION"],
-  ["BIOS", "CONFIGURATION"],
-  ["BIOS Settings", "CONFIGURATION"],
-  ["BIOS Setting", "CONFIGURATION"],
-  ["RAID Configuration", "CONFIGURATION"],
-  ["Software", "SOFTWARE_LICENSE"],
-  ["Software License", "SOFTWARE_LICENSE"],
-  ["License", "SOFTWARE_LICENSE"],
-]);
-
-const PHYSICAL_DEVICE_TYPE_ENUM_MAP = buildEnumMap([
-  ["CPU", "CPU"],
-  ["Processor", "CPU"],
-  ["Memory", "RAM"],
-  ["Memory Module", "RAM"],
-  ["Memory Capacity", "RAM"],
-  ["RAM", "RAM"],
-  ["DIMM", "RAM"],
-  ["DIMMs", "RAM"],
-  ["RDIMM", "RAM"],
-  ["RDIMMs", "RAM"],
-  ["UDIMM", "RAM"],
-  ["UDIMMs", "RAM"],
-  ["LRDIMM", "RAM"],
-  ["LRDIMMs", "RAM"],
-  ["SSD", "SSD"],
-  ["NVMe", "SSD"],
-  ["NVMe SSD", "SSD"],
-  ["NVMe Drives", "SSD"],
-  ["Solid State Drive", "SSD"],
-  ["Solid State Drives", "SSD"],
-  ["Solid State Disk", "SSD"],
-  ["Solid State Disks", "SSD"],
-  ["HDD", "HDD"],
-  ["Hard Drive", "HDD"],
-  ["Hard Drives", "HDD"],
-  ["Hard Disk", "HDD"],
-  ["Hard Disk Drive", "HDD"],
-  ["Hard Disk Drives", "HDD"],
-  ["PSU", "PSU"],
-  ["Power Supply", "PSU"],
-  ["Power Supply Unit", "PSU"],
-  ["RAID Controller", "RAID_CONTROLLER"],
-  ["Raid Controller", "RAID_CONTROLLER"],
-  ["RAID Controller Card", "RAID_CONTROLLER"],
-  ["Storage Controller", "RAID_CONTROLLER"],
-  ["Storage Controllers", "RAID_CONTROLLER"],
-  ["Internal Storage Controller", "RAID_CONTROLLER"],
-  ["Internal Storage Controllers", "RAID_CONTROLLER"],
-  ["Internal Storage Controller Card", "RAID_CONTROLLER"],
-  ["NIC", "NIC"],
-  ["Network Adapter", "NIC"],
-  ["Network Adapters", "NIC"],
-  ["Network Interface Card", "NIC"],
-  ["Network Interface Cards", "NIC"],
-  ["GPU", "GPU"],
-  ["Graphics", "GPU"],
-  ["Graphics Card", "GPU"],
-  ["Video Card", "GPU"],
-  ["Heatsink", "HEATSINK"],
-  ["Heat Sink", "HEATSINK"],
-  ["Fan", "FAN"],
-  ["Fans", "FAN"],
-  ["Cooling Fan", "FAN"],
-  ["Cooling Fans", "FAN"],
-  ["System Fan", "FAN"],
-  ["System Fans", "FAN"],
-  ["Backplane", "BACKPLANE"],
-  ["Backplanes", "BACKPLANE"],
-  ["Chassis", "CHASSIS_PART"],
-  ["Chassis Part", "CHASSIS_PART"],
-  ["Chassis Parts", "CHASSIS_PART"],
-  ["Chassis Component", "CHASSIS_PART"],
-  ["Chassis Components", "CHASSIS_PART"],
-]);
-
-const resolveModuleEnumMatch = (item, enumMap) => {
-  const moduleName = resolveModuleNameRaw(item);
-  if (!moduleName) {
-    return null;
+const matchRule = (normalized, rule) => {
+  if (!normalized) {
+    return false;
   }
-  const normalized = normalizeEnumKey(moduleName);
+  const patterns = rule.patterns ?? [];
+  switch (rule.matchKind) {
+    case "exact":
+      return patterns.includes(normalized);
+    case "prefix":
+      return patterns.some((pattern) => normalized.startsWith(pattern));
+    case "contains":
+      return patterns.some((pattern) => normalized.includes(pattern));
+    default:
+      return false;
+  }
+};
+
+const normalizeRulePatterns = (patterns) =>
+  patterns.map((pattern) => normalizeModuleNameForMatch(pattern)).filter(Boolean);
+
+const prepareRules = (rules) =>
+  rules.map((rule) => ({
+    ...rule,
+    patterns: normalizeRulePatterns(rule.patterns ?? []),
+  }));
+
+const LINE_TYPE_RULE_TABLE = prepareRules(LINE_TYPE_RULES);
+const DEVICE_TYPE_RULE_TABLE = prepareRules(DEVICE_TYPE_RULES);
+
+const resolveLineTypeRuleMatch = (item) => {
+  const normalized = normalizeModuleNameForMatch(resolveModuleNameRaw(item));
   if (!normalized) {
     return null;
   }
-  return enumMap.get(normalized) ?? null;
+  for (const rule of LINE_TYPE_RULE_TABLE) {
+    if (matchRule(normalized, rule)) {
+      return rule.resultLineType ?? null;
+    }
+  }
+  return null;
+};
+
+const resolveDeviceTypeRuleMatch = (item, lineType) => {
+  const normalized = normalizeModuleNameForMatch(resolveModuleNameRaw(item));
+  if (!normalized) {
+    return null;
+  }
+  for (const rule of DEVICE_TYPE_RULE_TABLE) {
+    if (rule.lineTypes && !rule.lineTypes.includes(lineType)) {
+      continue;
+    }
+    if (matchRule(normalized, rule)) {
+      return rule.resultDeviceType ?? null;
+    }
+  }
+  return null;
 };
 
 const inferDellLineType = (item) => {
@@ -197,14 +383,14 @@ const inferDellLineType = (item) => {
   }
 
   if (lineRole === "item" || lineRole === "unknown" || !lineRole) {
-    const moduleLineType = resolveModuleEnumMatch(item, LINE_TYPE_ENUM_MAP);
+    const moduleLineType = resolveLineTypeRuleMatch(item);
     return moduleLineType ?? "PHYSICAL_COMPONENT";
   }
   return "PHYSICAL_COMPONENT";
 };
 
 const inferPhysicalDeviceType = (item) =>
-  resolveModuleEnumMatch(item, PHYSICAL_DEVICE_TYPE_ENUM_MAP) ?? "UNCLEAR";
+  resolveDeviceTypeRuleMatch(item, "PHYSICAL_COMPONENT") ?? "UNCLEAR";
 
 const inferDellDeviceType = (item, lineType) => {
   switch (lineType) {
