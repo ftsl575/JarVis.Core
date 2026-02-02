@@ -41,11 +41,43 @@ Cleaned spec предназначен для быстрого и однозна�
 Если строка описывает СОСТОЯНИЕ, РЕЖИМ или ПОДТВЕРЖДЕНИЕ,
 а не ФИЗИЧЕСКУЮ ПОСТАВКУ — она не должна мешать просмотру состава сервера.
 
-СЕМАНТИЧЕСКАЯ МОДЕЛЬ V2.1 (ДОКУМЕНТАЦИЯ)
-- Этот принцип остаётся неизменным: cleaned spec по умолчанию отражает физическую поставку.
-- Документ «Dell cleaned spec semantic model v2.1» описывает семантические классы строк,
-  а также line_type и device_type, не изменяя текущего поведения пайплайна.
-- См.: docs/RULES.DELL/CLEANED_SPEC_SEMANTIC_MODEL_v2.md
+DELL CLEANED SPEC SEMANTIC MODEL V2 (NORMATIVE)
+Этот раздел формально определяет Semantic Model v2 для Dell cleaned spec.
+Он не меняет поведение Stage 1–4 и не вводит эвристик; он закрепляет смысл.
+
+A) Обязательная семантическая типизация (NORMATIVE)
+- Для всех нормальных/повторяемых строк cleaned spec MUST быть явный semantic type.
+- Минимально MUST быть типизированы строки классов:
+  SYSTEM, PHYSICAL_COMPONENT, CONFIGURATION, SOFTWARE_LICENSE, SERVICE.
+
+B) Определение device_type (NORMATIVE)
+- device_type — это семантический тип СТРОКИ cleaned spec.
+- device_type НЕ является только системным якорем.
+- device_type НЕ ограничен только SYSTEM-строками.
+
+C) Политика Unclear (NORMATIVE)
+- Unclear НЕ является допустимым значением по умолчанию.
+- Unclear НЕ допускается как нормальный/повторяемый финальный результат.
+- Unclear допускается ТОЛЬКО как временный fallback для строк, требующих новых детерминированных правил.
+
+D) Явное разделение категорий (NORMATIVE)
+- PHYSICAL_COMPONENT: CPU, RAM, SSD, HDD, PSU, RAID controller, NIC, GPU, heatsink, fan, backplane, chassis parts.
+- CONFIGURATION: режимы, возможности, лимиты, “No X”, конфигурация шасси, BIOS/RAID настройки.
+- SOFTWARE_LICENSE: ОС, лицензии, management software.
+- SERVICE: гарантия, поддержка, deployment services.
+
+E) Минимальный набор semantic types (NORMATIVE, НЕ РАСШИРЯТЬ)
+- line_type (high-level): SYSTEM | PHYSICAL_COMPONENT | CONFIGURATION | SOFTWARE_LICENSE | SERVICE | META.
+- device_type (row semantic type):
+  - SYSTEM: SERVER (или уже существующий системный токен, используемый в документации).
+  - PHYSICAL_COMPONENT: CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, BACKPLANE, CHASSIS_PART.
+  - CONFIGURATION: CONFIGURATION.
+  - SOFTWARE_LICENSE: SOFTWARE_LICENSE.
+  - SERVICE: SERVICE.
+
+NON-COMPLIANCE NOTE (NORMATIVE)
+Выходные данные, где большинство строк имеют device_type = Unclear,
+являются НЕСООТВЕТСТВУЮЩИМИ Semantic Model v2 и допускаются только как временный fallback.
 
 КОЛОНКА "Module Name" (НЕАВТОРИТАТИВНАЯ)
 Назначение этой колонки — только информационное отображение (display-only).

@@ -59,6 +59,11 @@ Design Freeze v1 locks **architecture, contracts, segmentation rules, and determ
 ## 7.1) Design Update — Semantic Model v2.1 (Locked, Documentation-Only)
 This section **explicitly permits** the **semantic model v2.1** for Dell documentation while preserving the v1 constraints.
 
+### 7.1.0 Design Freeze compatibility note (Normative)
+- Design Freeze v1 remains in force for structure, determinism, and pipeline constraints.
+- Documentation may evolve semantically without changing Stage 1–4 behavior.
+- Semantic Model v2 (as defined in Dell docs) is **compatible** with Design Freeze v1.
+
 ### 7.1.1 Scope and non-impact
 - This section is **documentation-only** and does **not** change Stage 1–4 behavior.
 - All rules remain **deterministic**; no ML, probabilistic logic, or free-text heuristics are allowed.
@@ -67,13 +72,19 @@ This section **explicitly permits** the **semantic model v2.1** for Dell documen
 ### 7.1.2 Line type vs. device type (v2.1)
 - **line_type** is a **high-level class** and MUST be one of:
   - SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE / META.
-- **device_type** applicability is defined by the Dell Device_Type Gatekeeper and applies **only** to SYSTEM rows.
-- Non-system rows **must omit** device_type; absence is the correct final state.
+- **device_type** is the **semantic type of a cleaned spec row** and is defined by the Dell Device_Type Gatekeeper.
+- device_type applies to normal/repeatable rows of
+  SYSTEM / PHYSICAL_COMPONENT / CONFIGURATION / SOFTWARE_LICENSE / SERVICE.
 - The two fields serve different purposes and **MUST NOT** be conflated.
 
-### 7.1.3 Canonical device_type enums (v2.1, SYSTEM-only)
+### 7.1.3 Canonical device_type enums (v2.1, minimal set)
 - **SYSTEM** rows: device_type MUST be **SERVER** (canonical value; SYSTEM MAY be used only if explicitly documented elsewhere).
-- **Fallback:** if a deterministic mapping cannot be established, device_type MUST be **UNCLEAR** (non-empty, deterministic).
+- **PHYSICAL_COMPONENT** rows: device_type MUST be one of
+  CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, BACKPLANE, CHASSIS_PART.
+- **CONFIGURATION** rows: device_type MUST be **CONFIGURATION**.
+- **SOFTWARE_LICENSE** rows: device_type MUST be **SOFTWARE_LICENSE**.
+- **SERVICE** rows: device_type MUST be **SERVICE**.
+- **Fallback:** if a deterministic mapping cannot be established, device_type MAY be **Unclear** only as a temporary fallback.
 
 ## 8) Module Name Policy (Dell-Only, Frozen)
 This section defines the **normative policy** for the Dell input column labeled **“Module Name.”**
