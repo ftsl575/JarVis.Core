@@ -288,3 +288,92 @@ test("docs:dell:cleaned_spec maps Block 1 hardware accessories to CHASSIS_PART v
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test("docs:dell:cleaned_spec maps Block 3 configuration and metadata modules to CONFIGURATION", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-block3-"));
+
+  try {
+    const configurationModuleNames = [
+      "Memory Configuration Type",
+      "Advanced System Configurations",
+      "BIOS Settings",
+      "Trusted Platform Module",
+      "Order Configuration",
+      "Shipping",
+      "Shipping Material",
+      "Regulatory",
+      "Asset Tagging",
+      "Anti Theft Device & Asset Tagging",
+    ];
+
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl2_s003",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "dl2.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "dl2.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760",
+          description: "PowerEdge R760 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        {
+          source_ref: "dl2.xlsx::BOM::3",
+          qty: 2,
+          product_number: "CPU-1",
+          description: "Processor",
+          line_type: "item",
+          module_name_raw: "CPU",
+        },
+        ...configurationModuleNames.map((moduleName, index) => ({
+          source_ref: `dl2.xlsx::BOM::${index + 4}`,
+          qty: 1,
+          product_number: `CFG-${index + 1}`,
+          description: `${moduleName} setting`,
+          line_type: "item",
+          module_name_raw: moduleName,
+        })),
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl2_s003.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const outputPath = path.join(tempDir, "cleaned_spec.dell.segment_dell_dl2_s003.xlsx");
+    const workbook = xlsx.readFile(outputPath);
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const cpuRow = tableRows.find((candidate) => candidate[10] === "CPU");
+    assert.ok(cpuRow, "Expected CPU row to exist");
+    assert.equal(cpuRow[4], "CPU");
+    assert.equal(cpuRow[5], "PHYSICAL_COMPONENT");
+
+    for (const moduleName of configurationModuleNames) {
+      const row = tableRows.find((candidate) => candidate[10] === moduleName);
+      assert.ok(row, `Expected row for module ${moduleName}`);
+      assert.equal(row[4], "CONFIGURATION");
+      assert.equal(row[5], "CONFIGURATION");
+    }
+
+    const unclearRows = tableRows.filter((row) => row[4] === "UNCLEAR");
+    assert.equal(unclearRows.length, 0);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

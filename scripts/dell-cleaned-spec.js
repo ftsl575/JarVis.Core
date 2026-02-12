@@ -106,6 +106,22 @@ const LINE_TYPE_RULES = [
     resultLineType: "CONFIGURATION",
   },
   {
+    matchKind: "exact",
+    patterns: [
+      "Memory Configuration Type",
+      "Advanced System Configurations",
+      "BIOS Settings",
+      "Trusted Platform Module",
+      "Order Configuration",
+      "Shipping",
+      "Shipping Material",
+      "Regulatory",
+      "Asset Tagging",
+      "Anti Theft Device & Asset Tagging",
+    ],
+    resultLineType: "CONFIGURATION",
+  },
+  {
     matchKind: "prefix",
     patterns: ["No "],
     resultLineType: "CONFIGURATION",
@@ -383,6 +399,23 @@ const DEVICE_TYPE_RULES = [
     matchKind: "exact",
     patterns: ["SAS", "SATA", "Drive", "Drives"],
     resultDeviceType: "UNCLEAR",
+  },
+  {
+    lineTypes: ["CONFIGURATION"],
+    matchKind: "exact",
+    patterns: [
+      "Memory Configuration Type",
+      "Advanced System Configurations",
+      "BIOS Settings",
+      "Trusted Platform Module",
+      "Order Configuration",
+      "Shipping",
+      "Shipping Material",
+      "Regulatory",
+      "Asset Tagging",
+      "Anti Theft Device & Asset Tagging",
+    ],
+    resultDeviceType: "CONFIGURATION",
   },
 ];
 
