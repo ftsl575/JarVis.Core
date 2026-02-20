@@ -377,3 +377,72 @@ test("docs:dell:cleaned_spec maps Block 3 configuration and metadata modules to 
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test("docs:dell:cleaned_spec maps Stage 4 V2 physical component exact names deterministically", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-stage4v2-"));
+
+  try {
+    const expectations = [
+      ["Power Cords", "CHASSIS_PART"],
+      ["Cables", "CHASSIS_PART"],
+      ["Rails", "CHASSIS_PART"],
+      ["GPU/FPGA/Acceleration Cables", "CHASSIS_PART"],
+      ["Heatsink", "HEATSINK"],
+      ["Power Supply", "PSU"],
+    ];
+
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl5_s001",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "dl5.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "dl5.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R660",
+          description: "PowerEdge R660 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        ...expectations.map(([moduleName], index) => ({
+          source_ref: `dl5.xlsx::BOM::${index + 3}`,
+          qty: 1,
+          product_number: `PART-${index + 1}`,
+          description: `${moduleName} component`,
+          line_type: "item",
+          module_name_raw: moduleName,
+        })),
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl5_s001.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const outputPath = path.join(tempDir, "cleaned_spec.dell.segment_dell_dl5_s001.xlsx");
+    const workbook = xlsx.readFile(outputPath);
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    for (const [moduleName, expectedDeviceType] of expectations) {
+      const row = tableRows.find((candidate) => candidate[10] === moduleName);
+      assert.ok(row, `Expected row for module ${moduleName}`);
+      assert.equal(row[4], expectedDeviceType);
+      assert.equal(row[5], "PHYSICAL_COMPONENT");
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
