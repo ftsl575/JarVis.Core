@@ -1,0 +1,38 @@
+You are implementing a DOCS-ONLY design update for Dell semantic governance.
+
+Objective:
+Apply a formal design update that legalizes a narrowly scoped Stage 4 exception allowing deterministic use of `module_name_raw` for system-anchor/config metadata classification only.
+
+Required edits (single synchronized commit):
+1) Update `docs/RULES.DELL/DELL_DESIGN_FREEZE_v1.md`
+   - Add section titled: "Stage 4 Exception: System Metadata Signals".
+   - Include a block titled exactly: "Compatibility & Design Update [2026-02-21]".
+   - Define a closed allowlist for exact-match `module_name_raw` values only:
+     - `Base`
+     - `Thermal Configuration`
+     - `BIOS and Advanced System Configuration Settings`
+     - `DPU Cables`
+   - State strict constraints:
+     - exact-match only (no regex, heuristics, fuzzy, synonym, ML)
+     - applies only to Stage 4 system anchor/config metadata classification
+     - physical components remain strictly part-number-based only
+   - Explicitly state this update supersedes prior Module Name prohibitions ONLY for the above allowlist/scope.
+
+2) Update `docs/RULES.DELL/Dell_Device_Type_Gatekeeper_Principle.txt`
+   - Amend the Module Name prohibition with this exact sentence:
+     "EXCEPTION: Deterministic exact-match mapping for system anchors and config metadata as defined in Design Freeze v1 Update [2026-02-21]".
+   - Include a block titled exactly: "Compatibility & Design Update [2026-02-21]".
+   - Repeat the same closed allowlist and deterministic boundaries.
+   - Reaffirm hardware integrity: no Module Name classification for physical hardware.
+
+Hard constraints:
+- DOCS ONLY: Do not modify `.js`, `.ts`, `.json`, or implementation scripts.
+- Keep deterministic architecture intact.
+- Avoid contradictions between the two documents.
+
+Acceptance checklist:
+- Both docs updated and synchronized.
+- Compatibility/design-update block present in both docs.
+- Allowlist is closed to the 4 required values.
+- Priority/supersession rule is explicit and scoped.
+- No code changes.

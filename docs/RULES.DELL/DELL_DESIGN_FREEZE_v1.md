@@ -126,3 +126,29 @@ Because Module Name is **free-text**, the requested use of Module Name as a **de
    `Module Name = "Storage/RAID"` on a service line does **not** reclassify the line as hardware; line role remains service per existing rules.
 4) **Bundle wording variance:**  
    Two rows with different Module Name values (e.g., `"Compute"` vs. `"System"`) do **not** merge or split configurations; anchors still define segments.
+
+## 9) Stage 4 Exception: System Metadata Signals (Design Update v2)
+
+### Compatibility & Design Update [2026-02-21]
+- This section is a **formal design update** to the frozen v1 document and explicitly addresses the previously identified gap in system anchor and configuration metadata identification.
+- For the limited allowlist below, this update **supersedes prior Module Name prohibitions** in this document only for **Stage 4 device_type classification**.
+- This update is **Dell-only**, **deterministic**, and introduces **no regex, heuristics, fuzzy matching, or ML behavior**.
+
+### 9.1 Closed allowlist (authoritative)
+Stage 4 MAY use `module_name_raw` as a deterministic signal **only** when the value is an **exact-match** to one of the following strings:
+- `Base`
+- `Thermal Configuration`
+- `BIOS and Advanced System Configuration Settings`
+- `DPU Cables`
+
+### 9.2 Hard boundaries (non-negotiable)
+- The allowlist is **closed**; no additional values are implied.
+- Matching is **exact string equality** on `module_name_raw`; no regex, contains, tokenization, synonym expansion, or fuzzy logic is permitted.
+- The exception applies **only to system anchors and configuration metadata semantics** in Stage 4 classification.
+- **Physical component classification remains part-number-based only** (e.g., CPU, RAM, SSD, HDD, PSU, RAID_CONTROLLER, NIC, GPU, HEATSINK, FAN, BACKPLANE, CHASSIS_PART). Module Name MUST NOT classify physical hardware.
+
+### 9.3 Consistency with freeze constraints
+- Stage 1 extraction/adapter behavior is unchanged.
+- Stage 2–3 deterministic contracts are unchanged.
+- This is a constrained Stage 4 semantic exception and does not authorize broader Module Name inference.
+
