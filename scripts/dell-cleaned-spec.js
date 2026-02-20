@@ -459,6 +459,17 @@ const DEVICE_TYPE_RULES = [
     ],
     resultDeviceType: "CONFIGURATION",
   },
+  {
+    lineTypes: ["CONFIGURATION"],
+    matchKind: "exact",
+    patterns: [
+      "Base",
+      "Thermal Configuration",
+      "BIOS and Advanced System Configuration Settings",
+      "DPU Cables",
+    ],
+    resultDeviceType: "CONFIGURATION",
+  },
 ];
 
 const matchRule = (normalized, rule) => {
