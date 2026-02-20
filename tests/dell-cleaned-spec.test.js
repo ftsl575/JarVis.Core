@@ -446,3 +446,84 @@ test("docs:dell:cleaned_spec maps Stage 4 V2 physical component exact names dete
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+
+test("docs:dell:cleaned_spec maps Stage 4 V5 configuration allowlist module names to CONFIGURATION", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-stage4v5-"));
+
+  try {
+    const configurationModuleNames = [
+      "Base",
+      "Thermal Configuration",
+      "BIOS and Advanced System Configuration Settings",
+      "DPU Cables",
+    ];
+
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl6_s001",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "dl6.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "dl6.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760XA",
+          description: "PowerEdge R760xa Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        {
+          source_ref: "dl6.xlsx::BOM::3",
+          qty: 2,
+          product_number: "CPU-1",
+          description: "Processor",
+          line_type: "item",
+          module_name_raw: "CPU",
+        },
+        ...configurationModuleNames.map((moduleName, index) => ({
+          source_ref: `dl6.xlsx::BOM::${index + 4}`,
+          qty: 1,
+          product_number: `CFG-${index + 1}`,
+          description: `${moduleName} setting`,
+          line_type: "attribute",
+          module_name_raw: moduleName,
+        })),
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl6_s001.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const outputPath = path.join(tempDir, "cleaned_spec.dell.segment_dell_dl6_s001.xlsx");
+    const workbook = xlsx.readFile(outputPath);
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const cpuRow = tableRows.find((candidate) => candidate[10] === "CPU");
+    assert.ok(cpuRow, "Expected CPU row to exist");
+    assert.equal(cpuRow[4], "CPU");
+    assert.equal(cpuRow[5], "PHYSICAL_COMPONENT");
+
+    for (const moduleName of configurationModuleNames) {
+      const row = tableRows.find((candidate) => candidate[10] === moduleName);
+      assert.ok(row, `Expected row for module ${moduleName}`);
+      assert.equal(row[4], "CONFIGURATION");
+      assert.equal(row[5], "CONFIGURATION");
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
