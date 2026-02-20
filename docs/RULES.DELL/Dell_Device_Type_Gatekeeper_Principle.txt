@@ -47,8 +47,16 @@ Canonical device_type mapping (minimum, Dell)
 - SERVICE rows: device_type MUST be SERVICE.
 
 Module Name role clarification (Dell-only)
-- Module Name is NOT a line_type or device_type inference signal.
+- Module Name is NOT a general line_type or device_type inference signal.
 - Module Name MUST NOT be used to guess or infer line_type or device_type.
+- EXCEPTION: Deterministic exact-match mapping for system anchors and config metadata as defined in Design Freeze v1 Update [2026-02-21].
+
+Compatibility & Design Update [2026-02-21]
+- This block formalizes a narrow compatibility update synchronized with the Design Freeze update.
+- Priority rule: this update supersedes prior Module Name prohibitions only for the closed allowlist and only for Stage 4 system anchor/configuration metadata classification.
+- Closed allowlist values: `Base`, `Thermal Configuration`, `BIOS and Advanced System Configuration Settings`, `DPU Cables`.
+- Determinism is mandatory: exact-match on `module_name_raw` only; no regex, heuristics, fuzzy matching, synonym expansion, or ML behavior.
+- Hardware integrity remains mandatory: physical components must continue to use part-number-based classification only.
 
 Safety-first default (fallback rule)
 - If device_type cannot be determined deterministically for a normal/repeatable row:
