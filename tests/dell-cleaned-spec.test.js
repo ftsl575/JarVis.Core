@@ -815,7 +815,7 @@ const UNCLEAR_REDUCTION_MODULE_EXPECTATIONS = [
   ["Hard Drives (PCIe SSD/Flex Bay)", "PHYSICAL_COMPONENT", "SSD"],
   ["Infrastructure Deployment Svcs", "SERVICE", "SERVICE"],
   ["KVM/Quick Sync", "CONFIGURATION", "CONFIGURATION"],
-  ["Memory Capacity", "CONFIGURATION", "CONFIGURATION"],
+  ["Memory Capacity", "PHYSICAL_COMPONENT", "RAM"],
   ["Memory Configuration Type", "CONFIGURATION", "CONFIGURATION"],
   ["Memory DIMM Type and Speed", "CONFIGURATION", "CONFIGURATION"],
   ["Motherboard", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
@@ -897,6 +897,89 @@ test("docs:dell:cleaned_spec exact module_name_raw mapping reduces UNCLEAR for c
     assert.ok(ocpAccessoriesRow, "Expected row for OCP 3.0 Accessories");
     assert.equal(ocpAccessoriesRow[4], "CHASSIS_PART", "OCP 3.0 Accessories must be CHASSIS_PART");
     assert.notEqual(ocpAccessoriesRow[4], "NIC", "OCP 3.0 Accessories must not be classified as NIC");
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("docs:dell:cleaned_spec Memory Capacity is PHYSICAL_COMPONENT/RAM; Memory Configuration Type and Memory DIMM Type and Speed remain CONFIGURATION", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-memory-capacity-"));
+
+  try {
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl_mem",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "mem.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "mem.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760",
+          description: "PowerEdge R760 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        {
+          source_ref: "mem.xlsx::BOM::3",
+          qty: 4,
+          product_number: "MEM-1",
+          description: "16GB RDIMM, 5600MT/s",
+          line_type: "item",
+          module_name_raw: "Memory Capacity",
+        },
+        {
+          source_ref: "mem.xlsx::BOM::4",
+          qty: 1,
+          product_number: "CFG-1",
+          description: "Memory config setting",
+          line_type: "item",
+          module_name_raw: "Memory Configuration Type",
+        },
+        {
+          source_ref: "mem.xlsx::BOM::5",
+          qty: 1,
+          product_number: "CFG-2",
+          description: "DIMM type and speed setting",
+          line_type: "item",
+          module_name_raw: "Memory DIMM Type and Speed",
+        },
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl_mem.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const workbook = xlsx.readFile(path.join(tempDir, "cleaned_spec.dell.segment_dell_dl_mem.xlsx"));
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const memoryCapacityRow = tableRows.find((candidate) => candidate[10] === "Memory Capacity");
+    assert.ok(memoryCapacityRow, "Expected row for Memory Capacity");
+    assert.equal(memoryCapacityRow[5], "PHYSICAL_COMPONENT", "Memory Capacity must be PHYSICAL_COMPONENT");
+    assert.equal(memoryCapacityRow[4], "RAM", "Memory Capacity must be device_type RAM");
+
+    const memoryConfigTypeRow = tableRows.find((candidate) => candidate[10] === "Memory Configuration Type");
+    assert.ok(memoryConfigTypeRow, "Expected row for Memory Configuration Type");
+    assert.equal(memoryConfigTypeRow[5], "CONFIGURATION", "Memory Configuration Type must remain CONFIGURATION");
+    assert.equal(memoryConfigTypeRow[4], "CONFIGURATION", "Memory Configuration Type device_type must remain CONFIGURATION");
+
+    const memoryDimmTypeRow = tableRows.find((candidate) => candidate[10] === "Memory DIMM Type and Speed");
+    assert.ok(memoryDimmTypeRow, "Expected row for Memory DIMM Type and Speed");
+    assert.equal(memoryDimmTypeRow[5], "CONFIGURATION", "Memory DIMM Type and Speed must remain CONFIGURATION");
+    assert.equal(memoryDimmTypeRow[4], "CONFIGURATION", "Memory DIMM Type and Speed device_type must remain CONFIGURATION");
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
