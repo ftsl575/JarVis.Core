@@ -800,10 +800,12 @@ test("docs:dell:cleaned_spec Base with description not in allowlist does not yie
 });
 
 const UNCLEAR_REDUCTION_MODULE_EXPECTATIONS = [
+  ["Additional Processor Features", "CONFIGURATION", "CONFIGURATION"],
   ["Advanced System Configurations", "CONFIGURATION", "CONFIGURATION"],
   ["BIOS and Advanced System Configuration Settings", "CONFIGURATION", "CONFIGURATION"],
   ["Bezel", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
-  ["Boot Optimized Storage Cards", "PHYSICAL_COMPONENT", "SSD"],
+  ["Boot Optimized Storage Cards", "PHYSICAL_COMPONENT", "RAID_CONTROLLER"],
+  ["Cables", "CONFIGURATION", "CONFIGURATION"],
   ["Chassis Configuration", "CONFIGURATION", "CONFIGURATION"],
   ["DPU Cables", "CONFIGURATION", "CONFIGURATION"],
   ["Dell Secure Onboarding", "CONFIGURATION", "CONFIGURATION"],
@@ -811,6 +813,7 @@ const UNCLEAR_REDUCTION_MODULE_EXPECTATIONS = [
   ["Embedded Systems Management", "CONFIGURATION", "CONFIGURATION"],
   ["Extended Service", "SERVICE", "SERVICE"],
   ["Fans", "PHYSICAL_COMPONENT", "FAN"],
+  ["GPU/FPGA/Acceleration Cables", "CONFIGURATION", "CONFIGURATION"],
   ["Hard Drives", "PHYSICAL_COMPONENT", "HDD"],
   ["Hard Drives (PCIe SSD/Flex Bay)", "PHYSICAL_COMPONENT", "SSD"],
   ["Infrastructure Deployment Svcs", "SERVICE", "SERVICE"],
@@ -829,7 +832,7 @@ const UNCLEAR_REDUCTION_MODULE_EXPECTATIONS = [
   ["Power Supply", "PHYSICAL_COMPONENT", "PSU"],
   ["PowerEdge R6715", "SYSTEM", "SERVER"],
   ["Processor", "PHYSICAL_COMPONENT", "CPU"],
-  ["Processor Thermal Configuration", "CONFIGURATION", "CONFIGURATION"],
+  ["Processor Thermal Configuration", "PHYSICAL_COMPONENT", "HEATSINK"],
   ["RAID Configuration", "CONFIGURATION", "CONFIGURATION"],
   ["RAID/Internal Storage Controllers", "PHYSICAL_COMPONENT", "RAID_CONTROLLER"],
   ["Rack Rails", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
@@ -980,6 +983,231 @@ test("docs:dell:cleaned_spec Memory Capacity is PHYSICAL_COMPONENT/RAM; Memory C
     assert.ok(memoryDimmTypeRow, "Expected row for Memory DIMM Type and Speed");
     assert.equal(memoryDimmTypeRow[5], "CONFIGURATION", "Memory DIMM Type and Speed must remain CONFIGURATION");
     assert.equal(memoryDimmTypeRow[4], "CONFIGURATION", "Memory DIMM Type and Speed device_type must remain CONFIGURATION");
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("docs:dell:cleaned_spec misclassification fixes: RAM/thermal/cables/controller", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-misclass-fix-"));
+
+  try {
+    const items = [
+      {
+        source_ref: "fix.xlsx::BOM::3",
+        qty: 4,
+        product_number: "MEM-1",
+        description: "16GB RDIMM, 5600MT/s, Single Rank",
+        line_type: "item",
+        module_name_raw: "Memory Capacity",
+      },
+      {
+        source_ref: "fix.xlsx::BOM::4",
+        qty: 1,
+        product_number: "CFG-1",
+        description: "Performance Optimized",
+        line_type: "item",
+        module_name_raw: "Memory Configuration Type",
+      },
+      {
+        source_ref: "fix.xlsx::BOM::5",
+        qty: 1,
+        product_number: "CFG-2",
+        description: "5600MT/s RDIMMs",
+        line_type: "item",
+        module_name_raw: "Memory DIMM Type and Speed",
+      },
+      {
+        source_ref: "fix.xlsx::BOM::6",
+        qty: 1,
+        product_number: "HS-1",
+        description: "Heatsink for 2 CPU configuration ...",
+        line_type: "item",
+        module_name_raw: "Processor Thermal Configuration",
+      },
+      {
+        source_ref: "fix.xlsx::BOM::7",
+        qty: 1,
+        product_number: "CPU-F-1",
+        description: "No HBM",
+        line_type: "item",
+        module_name_raw: "Additional Processor Features",
+      },
+      {
+        source_ref: "fix.xlsx::BOM::8",
+        qty: 1,
+        product_number: "CBL-1",
+        description: "No Cables Required, No GPU Blanks",
+        line_type: "item",
+        module_name_raw: "GPU/FPGA/Acceleration Cables",
+      },
+      {
+        source_ref: "fix.xlsx::BOM::9",
+        qty: 1,
+        product_number: "CBL-2",
+        description: "No DPUs Cable Required, No DPU",
+        line_type: "item",
+        module_name_raw: "Cables",
+      },
+      {
+        source_ref: "fix.xlsx::BOM::10",
+        qty: 1,
+        product_number: "BOSS-1",
+        description: "BOSS-N1 controller card + with 2 M.2 ...",
+        line_type: "item",
+        module_name_raw: "Boot Optimized Storage Cards",
+      },
+    ];
+
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl_fix",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "fix.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "fix.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760",
+          description: "PowerEdge R760 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        ...items,
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl_fix.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const workbook = xlsx.readFile(path.join(tempDir, "cleaned_spec.dell.segment_dell_dl_fix.xlsx"));
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const byModule = (name) => tableRows.find((r) => r[10] === name);
+
+    assert.deepEqual(
+      [byModule("Memory Capacity")?.[5], byModule("Memory Capacity")?.[4]],
+      ["PHYSICAL_COMPONENT", "RAM"],
+      "Memory Capacity -> PHYSICAL_COMPONENT / RAM"
+    );
+    assert.deepEqual(
+      [byModule("Memory Configuration Type")?.[5], byModule("Memory Configuration Type")?.[4]],
+      ["CONFIGURATION", "CONFIGURATION"],
+      "Memory Configuration Type -> CONFIGURATION / CONFIGURATION"
+    );
+    assert.deepEqual(
+      [byModule("Memory DIMM Type and Speed")?.[5], byModule("Memory DIMM Type and Speed")?.[4]],
+      ["CONFIGURATION", "CONFIGURATION"],
+      "Memory DIMM Type and Speed -> CONFIGURATION / CONFIGURATION"
+    );
+    assert.deepEqual(
+      [byModule("Processor Thermal Configuration")?.[5], byModule("Processor Thermal Configuration")?.[4]],
+      ["PHYSICAL_COMPONENT", "HEATSINK"],
+      "Processor Thermal Configuration -> PHYSICAL_COMPONENT / HEATSINK"
+    );
+    assert.deepEqual(
+      [byModule("Additional Processor Features")?.[5], byModule("Additional Processor Features")?.[4]],
+      ["CONFIGURATION", "CONFIGURATION"],
+      "Additional Processor Features -> CONFIGURATION / CONFIGURATION"
+    );
+    assert.deepEqual(
+      [byModule("GPU/FPGA/Acceleration Cables")?.[5], byModule("GPU/FPGA/Acceleration Cables")?.[4]],
+      ["CONFIGURATION", "CONFIGURATION"],
+      "GPU/FPGA/Acceleration Cables -> CONFIGURATION / CONFIGURATION"
+    );
+    assert.deepEqual(
+      [byModule("Cables")?.[5], byModule("Cables")?.[4]],
+      ["CONFIGURATION", "CONFIGURATION"],
+      "Cables -> CONFIGURATION / CONFIGURATION"
+    );
+    assert.deepEqual(
+      [byModule("Boot Optimized Storage Cards")?.[5], byModule("Boot Optimized Storage Cards")?.[4]],
+      ["PHYSICAL_COMPONENT", "RAID_CONTROLLER"],
+      "Boot Optimized Storage Cards -> PHYSICAL_COMPONENT / RAID_CONTROLLER"
+    );
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("docs:dell:cleaned_spec Processor Thermal Configuration and Boot Optimized Storage Cards single mapping (no duplicate rules)", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-single-map-"));
+
+  try {
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl_single",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "s.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "s.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760",
+          description: "PowerEdge R760 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        {
+          source_ref: "s.xlsx::BOM::3",
+          qty: 1,
+          product_number: "HS-1",
+          description: "Heatsink for 2 CPU",
+          line_type: "item",
+          module_name_raw: "Processor Thermal Configuration",
+        },
+        {
+          source_ref: "s.xlsx::BOM::4",
+          qty: 1,
+          product_number: "BOSS-1",
+          description: "BOSS-N1 controller",
+          line_type: "item",
+          module_name_raw: "Boot Optimized Storage Cards",
+        },
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl_single.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const workbook = xlsx.readFile(path.join(tempDir, "cleaned_spec.dell.segment_dell_dl_single.xlsx"));
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const thermalRow = tableRows.find((r) => r[10] === "Processor Thermal Configuration");
+    assert.ok(thermalRow, "Processor Thermal Configuration row");
+    assert.equal(thermalRow[5], "PHYSICAL_COMPONENT", "Processor Thermal Configuration -> PHYSICAL_COMPONENT");
+    assert.equal(thermalRow[4], "HEATSINK", "Processor Thermal Configuration -> HEATSINK");
+
+    const bossRow = tableRows.find((r) => r[10] === "Boot Optimized Storage Cards");
+    assert.ok(bossRow, "Boot Optimized Storage Cards row");
+    assert.equal(bossRow[5], "PHYSICAL_COMPONENT", "Boot Optimized Storage Cards -> PHYSICAL_COMPONENT");
+    assert.equal(bossRow[4], "RAID_CONTROLLER", "Boot Optimized Storage Cards -> RAID_CONTROLLER (storage controller)");
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
