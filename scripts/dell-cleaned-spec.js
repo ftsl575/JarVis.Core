@@ -82,6 +82,30 @@ const resolveFastPath = (item) => {
   return null;
 };
 
+const BASE_SYSTEM_ANCHOR_DESCRIPTIONS_RAW = [
+  "PowerEdge R660 Server",
+  "PowerEdge R770 Server",
+  "PowerEdge R7625 Server",
+  "PowerEdge R760 Server",
+];
+const BASE_SYSTEM_ANCHOR_DESCRIPTIONS_NORMALIZED = new Set(
+  BASE_SYSTEM_ANCHOR_DESCRIPTIONS_RAW.map((v) => normalizeModuleNameForMatch(v))
+);
+
+const resolveBaseSystemAnchor = (item) => {
+  const normalizedModule = normalizeModuleNameForMatch(resolveModuleNameRaw(item));
+  if (normalizedModule !== "base") {
+    return null;
+  }
+  const description =
+    item?.description ?? item?.description_raw ?? item?.["Description"] ?? "";
+  const normalizedDescription = normalizeModuleNameForMatch(description);
+  if (!BASE_SYSTEM_ANCHOR_DESCRIPTIONS_NORMALIZED.has(normalizedDescription)) {
+    return null;
+  }
+  return { lineType: "SYSTEM", deviceType: "SERVER" };
+};
+
 const resolvePartNumber = (item) =>
   item?.product_number ?? item?.part_number ?? item?.partNumber ?? item?.product ?? "";
 
@@ -169,6 +193,33 @@ const LINE_TYPE_RULES = [
     matchKind: "exact",
     patterns: ["Software", "Software License", "License"],
     resultLineType: "SOFTWARE_LICENSE",
+  },
+  {
+    matchKind: "exact",
+    patterns: [
+      "BIOS and Advanced System Configuration Settings",
+      "Chassis Configuration",
+      "DPU Cables",
+      "Dell Secure Onboarding",
+      "Embedded Systems Management",
+      "KVM/Quick Sync",
+      "Password",
+      "OS Media Kits",
+      "Operating System",
+      "Memory Capacity",
+      "Memory DIMM Type and Speed",
+      "Processor Thermal Configuration",
+    ],
+    resultLineType: "CONFIGURATION",
+  },
+  {
+    matchKind: "exact",
+    patterns: [
+      "Dell Services: Hardware Support",
+      "Extended Service",
+      "Infrastructure Deployment Svcs",
+    ],
+    resultLineType: "SERVICE",
   },
 ];
 
@@ -509,6 +560,99 @@ const DEVICE_TYPE_RULES = [
     ],
     resultDeviceType: "CONFIGURATION",
   },
+  {
+    lineTypes: ["CONFIGURATION"],
+    matchKind: "exact",
+    patterns: [
+      "Advanced System Configurations",
+      "BIOS and Advanced System Configuration Settings",
+      "Chassis Configuration",
+      "DPU Cables",
+      "Dell Secure Onboarding",
+      "Embedded Systems Management",
+      "KVM/Quick Sync",
+      "Password",
+      "Regulatory",
+      "Shipping",
+      "Shipping Material",
+      "OS Media Kits",
+      "Operating System",
+      "Memory Capacity",
+      "Memory Configuration Type",
+      "Memory DIMM Type and Speed",
+      "Processor Thermal Configuration",
+      "RAID Configuration",
+    ],
+    resultDeviceType: "CONFIGURATION",
+  },
+  {
+    lineTypes: ["SERVICE"],
+    matchKind: "exact",
+    patterns: [
+      "Dell Services: Hardware Support",
+      "Extended Service",
+      "Infrastructure Deployment Svcs",
+    ],
+    resultDeviceType: "SERVICE",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["OCP 3.0 Network Adapters"],
+    resultDeviceType: "NIC",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "Boot Optimized Storage Cards",
+      "Hard Drives (PCIe SSD/Flex Bay)",
+    ],
+    resultDeviceType: "SSD",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["Hard Drives"],
+    resultDeviceType: "HDD",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["RAID/Internal Storage Controllers"],
+    resultDeviceType: "RAID_CONTROLLER",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["Power Supply"],
+    resultDeviceType: "PSU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["Fans"],
+    resultDeviceType: "FAN",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: ["Processor"],
+    resultDeviceType: "CPU",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
+    patterns: [
+      "Motherboard",
+      "PCIe Riser",
+      "Rack Rails",
+      "Power Cords",
+      "Bezel",
+      "OCP 3.0 Accessories",
+    ],
+    resultDeviceType: "CHASSIS_PART",
+  },
 ];
 
 const matchRule = (normalized, rule) => {
@@ -620,13 +764,18 @@ const buildSegmentTableRows = ({ segment, items }) => {
 
   if (anchorItem) {
     const anchorSource = parseSourceRef(anchorItem?.source_ref);
+    const anchorBaseSystem = resolveBaseSystemAnchor(anchorItem);
     const anchorFastPath = resolveFastPath(anchorItem);
-    const anchorLineType = anchorFastPath
-      ? anchorFastPath.lineType
-      : inferDellLineType(anchorItem);
-    const anchorDeviceType = anchorFastPath
-      ? anchorFastPath.deviceType
-      : inferDellDeviceType(anchorItem, anchorLineType);
+    const anchorLineType = anchorBaseSystem
+      ? anchorBaseSystem.lineType
+      : anchorFastPath
+        ? anchorFastPath.lineType
+        : inferDellLineType(anchorItem);
+    const anchorDeviceType = anchorBaseSystem
+      ? anchorBaseSystem.deviceType
+      : anchorFastPath
+        ? anchorFastPath.deviceType
+        : inferDellDeviceType(anchorItem, anchorLineType);
     rows.push([
       1,
       normalizeNumber(anchorItem?.qty ?? ""),
@@ -647,11 +796,18 @@ const buildSegmentTableRows = ({ segment, items }) => {
       continue;
     }
     const source = parseSourceRef(item?.source_ref);
+    const baseSystem = resolveBaseSystemAnchor(item);
     const fastPath = resolveFastPath(item);
-    const lineType = fastPath ? fastPath.lineType : inferDellLineType(item);
-    const deviceType = fastPath
-      ? fastPath.deviceType
-      : inferDellDeviceType(item, lineType);
+    const lineType = baseSystem
+      ? baseSystem.lineType
+      : fastPath
+        ? fastPath.lineType
+        : inferDellLineType(item);
+    const deviceType = baseSystem
+      ? baseSystem.deviceType
+      : fastPath
+        ? fastPath.deviceType
+        : inferDellDeviceType(item, lineType);
     const row = [
       "",
       normalizeNumber(item?.qty ?? ""),

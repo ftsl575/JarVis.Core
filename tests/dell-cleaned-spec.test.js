@@ -669,3 +669,286 @@ test("docs:dell:cleaned_spec Fast Path overrides item to CONFIGURATION for metad
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test("docs:dell:cleaned_spec Base system anchor: each allowlisted description with module_name_raw Base yields SYSTEM/SERVER", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-base-anchor-"));
+
+  try {
+    const allowlistedDescriptions = [
+      "PowerEdge R660 Server",
+      "PowerEdge R770 Server",
+      "PowerEdge R7625 Server",
+      "PowerEdge R760 Server",
+    ];
+
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl_base",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "base.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "base.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760",
+          description: "PowerEdge R760 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        ...allowlistedDescriptions.map((description, index) => ({
+          source_ref: `base.xlsx::BOM::${index + 3}`,
+          qty: 1,
+          product_number: `PN-${index + 1}`,
+          description,
+          line_type: "item",
+          module_name_raw: "Base",
+        })),
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl_base.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const workbook = xlsx.readFile(path.join(tempDir, "cleaned_spec.dell.segment_dell_dl_base.xlsx"));
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const partNumbers = allowlistedDescriptions.map((_, index) => `PN-${index + 1}`);
+    for (let i = 0; i < allowlistedDescriptions.length; i += 1) {
+      const row = tableRows.find((candidate) => candidate[2] === partNumbers[i]);
+      assert.ok(row, `Expected row for ${partNumbers[i]}`);
+      assert.equal(row[3], allowlistedDescriptions[i]);
+      assert.equal(row[5], "SYSTEM", `line_type for ${allowlistedDescriptions[i]}`);
+      assert.equal(row[4], "SERVER", `device_type for ${allowlistedDescriptions[i]}`);
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("docs:dell:cleaned_spec Base with description not in allowlist does not yield SYSTEM/SERVER", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-base-no-overclaim-"));
+
+  try {
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl_base_nolist",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "base.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "base.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R740",
+          description: "PowerEdge R740 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        {
+          source_ref: "base.xlsx::BOM::3",
+          qty: 1,
+          product_number: "OTHER",
+          description: "PowerEdge R740 Server",
+          line_type: "item",
+          module_name_raw: "Base",
+        },
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl_base_nolist.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const workbook = xlsx.readFile(path.join(tempDir, "cleaned_spec.dell.segment_dell_dl_base_nolist.xlsx"));
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const anchorRow = tableRows[0];
+    assert.equal(anchorRow[5], "SYSTEM");
+    assert.equal(anchorRow[4], "SERVER");
+
+    const baseNotInListRow = tableRows.find((candidate) => candidate[2] === "OTHER" && candidate[10] === "Base");
+    assert.ok(baseNotInListRow, "Expected row with module_name_raw Base and description not in allowlist");
+    assert.notEqual(baseNotInListRow[5], "SYSTEM", "Base + non-allowlist description must not be classified as SYSTEM");
+    assert.notEqual(baseNotInListRow[4], "SERVER", "Base + non-allowlist description must not be classified as SERVER");
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+const UNCLEAR_REDUCTION_MODULE_EXPECTATIONS = [
+  ["Advanced System Configurations", "CONFIGURATION", "CONFIGURATION"],
+  ["BIOS and Advanced System Configuration Settings", "CONFIGURATION", "CONFIGURATION"],
+  ["Bezel", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
+  ["Boot Optimized Storage Cards", "PHYSICAL_COMPONENT", "SSD"],
+  ["Chassis Configuration", "CONFIGURATION", "CONFIGURATION"],
+  ["DPU Cables", "CONFIGURATION", "CONFIGURATION"],
+  ["Dell Secure Onboarding", "CONFIGURATION", "CONFIGURATION"],
+  ["Dell Services: Hardware Support", "SERVICE", "SERVICE"],
+  ["Embedded Systems Management", "CONFIGURATION", "CONFIGURATION"],
+  ["Extended Service", "SERVICE", "SERVICE"],
+  ["Fans", "PHYSICAL_COMPONENT", "FAN"],
+  ["Hard Drives", "PHYSICAL_COMPONENT", "HDD"],
+  ["Hard Drives (PCIe SSD/Flex Bay)", "PHYSICAL_COMPONENT", "SSD"],
+  ["Infrastructure Deployment Svcs", "SERVICE", "SERVICE"],
+  ["KVM/Quick Sync", "CONFIGURATION", "CONFIGURATION"],
+  ["Memory Capacity", "CONFIGURATION", "CONFIGURATION"],
+  ["Memory Configuration Type", "CONFIGURATION", "CONFIGURATION"],
+  ["Memory DIMM Type and Speed", "CONFIGURATION", "CONFIGURATION"],
+  ["Motherboard", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
+  ["OCP 3.0 Accessories", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
+  ["OCP 3.0 Network Adapters", "PHYSICAL_COMPONENT", "NIC"],
+  ["OS Media Kits", "CONFIGURATION", "CONFIGURATION"],
+  ["Operating System", "CONFIGURATION", "CONFIGURATION"],
+  ["PCIe Riser", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
+  ["Password", "CONFIGURATION", "CONFIGURATION"],
+  ["Power Cords", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
+  ["Power Supply", "PHYSICAL_COMPONENT", "PSU"],
+  ["PowerEdge R6715", "SYSTEM", "SERVER"],
+  ["Processor", "PHYSICAL_COMPONENT", "CPU"],
+  ["Processor Thermal Configuration", "CONFIGURATION", "CONFIGURATION"],
+  ["RAID Configuration", "CONFIGURATION", "CONFIGURATION"],
+  ["RAID/Internal Storage Controllers", "PHYSICAL_COMPONENT", "RAID_CONTROLLER"],
+  ["Rack Rails", "PHYSICAL_COMPONENT", "CHASSIS_PART"],
+  ["Regulatory", "CONFIGURATION", "CONFIGURATION"],
+  ["Shipping", "CONFIGURATION", "CONFIGURATION"],
+  ["Shipping Material", "CONFIGURATION", "CONFIGURATION"],
+];
+
+test("docs:dell:cleaned_spec exact module_name_raw mapping reduces UNCLEAR for closed list", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-unclear-reduction-"));
+
+  try {
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl_unclear",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "unclear.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "unclear.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760",
+          description: "PowerEdge R760 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        ...UNCLEAR_REDUCTION_MODULE_EXPECTATIONS.map(([moduleName], index) => ({
+          source_ref: `unclear.xlsx::BOM::${index + 3}`,
+          qty: 1,
+          product_number: `M-${index + 1}`,
+          description: `Item ${moduleName}`,
+          line_type: "item",
+          module_name_raw: moduleName,
+        })),
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl_unclear.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const workbook = xlsx.readFile(path.join(tempDir, "cleaned_spec.dell.segment_dell_dl_unclear.xlsx"));
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    for (const [moduleName, expectedLineType, expectedDeviceType] of UNCLEAR_REDUCTION_MODULE_EXPECTATIONS) {
+      const row = tableRows.find((candidate) => candidate[10] === moduleName);
+      assert.ok(row, `Expected row for module ${moduleName}`);
+      assert.equal(row[5], expectedLineType, `line_type for ${moduleName}`);
+      assert.equal(row[4], expectedDeviceType, `device_type for ${moduleName}`);
+    }
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("docs:dell:cleaned_spec unknown module_name_raw still yields UNCLEAR (no overreach)", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dell-cleaned-spec-unknown-module-"));
+
+  try {
+    const payload = {
+      vendor: "dell",
+      segment_id: "dell_dl_unknown",
+      anchor: {
+        sheet: "BOM",
+        row_index: 2,
+        source_ref: "unk.xlsx::BOM::2",
+      },
+      items: [
+        {
+          source_ref: "unk.xlsx::BOM::2",
+          qty: 1,
+          product_number: "R760",
+          description: "PowerEdge R760 Server",
+          device_type: "Server",
+          line_type: "anchor",
+        },
+        {
+          source_ref: "unk.xlsx::BOM::3",
+          qty: 1,
+          product_number: "UNK-1",
+          description: "Some unknown part",
+          line_type: "item",
+          module_name_raw: "Unknown Module XYZ",
+        },
+      ],
+      meta: { schema_version: 1 },
+    };
+
+    const segmentPath = await writeSegmentPayload({
+      dir: tempDir,
+      payload,
+      filename: "dell_segment_dell_dl_unknown.json",
+    });
+
+    await execFileAsync("node", ["scripts/dell-cleaned-spec.js", segmentPath], {
+      cwd: process.cwd(),
+    });
+
+    const workbook = xlsx.readFile(path.join(tempDir, "cleaned_spec.dell.segment_dell_dl_unknown.xlsx"));
+    const rows = readSheetRows(workbook.Sheets["Cfg 01"]);
+    const tableHeaderIndex = findTableHeaderIndex(rows);
+    const tableRows = rows.slice(tableHeaderIndex + 1, tableHeaderIndex + 1 + payload.items.length);
+
+    const unknownRow = tableRows.find((candidate) => candidate[10] === "Unknown Module XYZ");
+    assert.ok(unknownRow, "Expected row for unknown module");
+    assert.equal(unknownRow[4], "UNCLEAR", "Unknown module_name_raw must yield device_type UNCLEAR");
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
