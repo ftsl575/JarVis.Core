@@ -152,3 +152,14 @@ Stage 4 MAY use `module_name_raw` as a deterministic signal **only** when the va
 - Stage 2–3 deterministic contracts are unchanged.
 - This is a constrained Stage 4 semantic exception and does not authorize broader Module Name inference.
 
+### 9.4 Base system anchor: description exact-match (Design Update)
+- **Rule (narrow, closed):** When **module_name_raw** is **"Base"** AND **description** is **exact-match** (after normalization identical to the current Stage 4 rule-table normalization) to one of the closed allowlist strings below, Stage 4 MAY output **line_type = SYSTEM** and **device_type = SERVER**.
+- **Closed allowlist (description, exact match only):**
+  - `PowerEdge R660 Server`
+  - `PowerEdge R770 Server`
+  - `PowerEdge R7625 Server`
+  - `PowerEdge R760 Server`
+- **Scope:** This rule applies **ONLY** when **module_name_raw == "Base"**. It does not apply when module_name_raw is any other value.
+- **Description not used elsewhere:** The **description** field is **not** used for line_type or device_type classification in any other Stage 4 rule. This is the **sole** authorized use of description for classification; no other rule may use description for inference.
+- **Constraints:** Exact string equality only; no regex, no contains, no semantic expansion. Closed allowlist. Dell-only.
+

@@ -73,3 +73,14 @@ Explicit non-goals
 - No new classification logic or inference rules.
 - No reinterpretation of Dell Design Freeze v1.
 - No semantic use of Module Name.
+
+Base system anchor: description exact-match (Design Update)
+- Rule (narrow, closed): When module_name_raw is "Base" AND description is exact-match (after normalization identical to the current Stage 4 rule-table normalization) to one of the closed allowlist strings below, Stage 4 MAY output line_type = SYSTEM and device_type = SERVER.
+- Closed allowlist (description, exact match only; MUST match DELL_DESIGN_FREEZE_v1.md Section 9.4):
+  - PowerEdge R660 Server
+  - PowerEdge R770 Server
+  - PowerEdge R7625 Server
+  - PowerEdge R760 Server
+- This rule applies ONLY when module_name_raw == "Base". It does not apply when module_name_raw is any other value.
+- The description field is NOT used for line_type or device_type classification in any other Stage 4 rule. This is the sole authorized use of description for classification.
+- Constraints: exact string equality only; no regex, no contains, no semantic expansion. Closed allowlist. Dell-only.
