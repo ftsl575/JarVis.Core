@@ -310,6 +310,12 @@ const DEVICE_TYPE_RULES = [
   {
     lineTypes: ["PHYSICAL_COMPONENT"],
     matchKind: "exact",
+    patterns: ["OCP 3.0 Accessories"],
+    resultDeviceType: "CHASSIS_PART",
+  },
+  {
+    lineTypes: ["PHYSICAL_COMPONENT"],
+    matchKind: "exact",
     patterns: [
       "NIC",
       "Network",
@@ -649,7 +655,6 @@ const DEVICE_TYPE_RULES = [
       "Rack Rails",
       "Power Cords",
       "Bezel",
-      "OCP 3.0 Accessories",
     ],
     resultDeviceType: "CHASSIS_PART",
   },

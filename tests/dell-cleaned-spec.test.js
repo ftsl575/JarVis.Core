@@ -892,6 +892,11 @@ test("docs:dell:cleaned_spec exact module_name_raw mapping reduces UNCLEAR for c
       assert.equal(row[5], expectedLineType, `line_type for ${moduleName}`);
       assert.equal(row[4], expectedDeviceType, `device_type for ${moduleName}`);
     }
+
+    const ocpAccessoriesRow = tableRows.find((candidate) => candidate[10] === "OCP 3.0 Accessories");
+    assert.ok(ocpAccessoriesRow, "Expected row for OCP 3.0 Accessories");
+    assert.equal(ocpAccessoriesRow[4], "CHASSIS_PART", "OCP 3.0 Accessories must be CHASSIS_PART");
+    assert.notEqual(ocpAccessoriesRow[4], "NIC", "OCP 3.0 Accessories must not be classified as NIC");
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
