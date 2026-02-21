@@ -43,6 +43,45 @@ const normalizeText = (value) => (value === null || value === undefined ? "" : S
 const normalizeModuleNameForMatch = (value) =>
   normalizeText(value).replace(/\s+/g, " ").toLowerCase();
 
+const FAST_PATH_SYSTEM_RAW = [
+  "PowerEdge R6715",
+  "PowerEdge R660",
+  "PowerEdge R770",
+  "PowerEdge R7625",
+];
+const FAST_PATH_CONFIG_RAW = [
+  "Regulatory",
+  "Shipping Material",
+  "Asset Tagging",
+  "Trusted Platform Module",
+  "Shipping Box Labels - Standard",
+  "Order Configuration",
+  "Shipping",
+  "Anti Theft Device & Asset Tagging",
+  "Memory Configuration Type",
+];
+const FAST_PATH_NORMALIZED_SYSTEM = new Set(
+  FAST_PATH_SYSTEM_RAW.map((v) => normalizeModuleNameForMatch(v))
+);
+const FAST_PATH_NORMALIZED_CONFIG = new Set(
+  FAST_PATH_CONFIG_RAW.map((v) => normalizeModuleNameForMatch(v))
+);
+
+const resolveFastPath = (item) => {
+  const raw = resolveModuleNameRaw(item);
+  const normalized = normalizeModuleNameForMatch(raw);
+  if (!normalized) {
+    return null;
+  }
+  if (FAST_PATH_NORMALIZED_SYSTEM.has(normalized)) {
+    return { lineType: "SYSTEM", deviceType: "SERVER" };
+  }
+  if (FAST_PATH_NORMALIZED_CONFIG.has(normalized)) {
+    return { lineType: "CONFIGURATION", deviceType: "CONFIGURATION" };
+  }
+  return null;
+};
+
 const resolvePartNumber = (item) =>
   item?.product_number ?? item?.part_number ?? item?.partNumber ?? item?.product ?? "";
 
@@ -581,8 +620,13 @@ const buildSegmentTableRows = ({ segment, items }) => {
 
   if (anchorItem) {
     const anchorSource = parseSourceRef(anchorItem?.source_ref);
-    const anchorLineType = inferDellLineType(anchorItem);
-    const anchorDeviceType = inferDellDeviceType(anchorItem, anchorLineType);
+    const anchorFastPath = resolveFastPath(anchorItem);
+    const anchorLineType = anchorFastPath
+      ? anchorFastPath.lineType
+      : inferDellLineType(anchorItem);
+    const anchorDeviceType = anchorFastPath
+      ? anchorFastPath.deviceType
+      : inferDellDeviceType(anchorItem, anchorLineType);
     rows.push([
       1,
       normalizeNumber(anchorItem?.qty ?? ""),
@@ -603,8 +647,11 @@ const buildSegmentTableRows = ({ segment, items }) => {
       continue;
     }
     const source = parseSourceRef(item?.source_ref);
-    const lineType = inferDellLineType(item);
-    const deviceType = inferDellDeviceType(item, lineType);
+    const fastPath = resolveFastPath(item);
+    const lineType = fastPath ? fastPath.lineType : inferDellLineType(item);
+    const deviceType = fastPath
+      ? fastPath.deviceType
+      : inferDellDeviceType(item, lineType);
     const row = [
       "",
       normalizeNumber(item?.qty ?? ""),
